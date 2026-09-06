@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.python-version
+
+# Python environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Linters and type checking
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MLflow runtime data
+mlruns/
+mlartifacts/
+
+# Generated model artifacts
+artifacts/
+models/
+*.pkl
+*.pickle
+*.joblib
+
+# DVC local files and cache
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Keep Terraform dependency locks
+!**/.terraform.lock.hcl
+
+# Kubernetes and AWS local files
+kubeconfig*
+.aws/
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
