@@ -1,0 +1,9 @@
+# Core data and machine-learning dependencies
+numpy>=2.0,<3.0
+pandas>=2.2,<4.0
+scikit-learn>=1.6,<2.0
+joblib>=1.4,<2.0
+
+# Local testing and code quality
+pytest>=8.0,<10.0
+ruff>=0.9,<1.0
