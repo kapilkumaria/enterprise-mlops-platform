@@ -29,7 +29,7 @@ stages:
       md5: 176d84c03201899dc9f77aab50c45931
       size: 130296
   train:
-    cmd: python -m src.training.train --regularization-strength 1.0 
+    cmd: python -m src.training.train --regularization-strength 1.0
       --max-iterations 1000 --random-state 42
     deps:
     - path: data/processed/train.csv
@@ -55,7 +55,7 @@ stages:
       md5: 2638ab08531f1f5f4400158642dff9c2
       size: 5370
   evaluate:
-    cmd: python -m src.training.evaluate --minimum-accuracy 0.65 
+    cmd: python -m src.training.evaluate --minimum-accuracy 0.65
       --minimum-roc-auc 0.7
     deps:
     - path: data/processed/test.csv
