@@ -86,3 +86,6 @@ tmp/
 # Local MLflow tracking server
 mlflow.db
 mlflow.pid
+
+# Local prediction API
+api.pid
