@@ -1,0 +1,15 @@
+{
+  "accuracy": 0.745,
+  "f1_score": 0.5142857142857142,
+  "false_negative": 69,
+  "false_positive": 33,
+  "minimum_accuracy": 0.65,
+  "minimum_roc_auc": 0.7,
+  "precision": 0.6206896551724138,
+  "quality_gate_passed": true,
+  "recall": 0.43902439024390244,
+  "roc_auc": 0.771829415045053,
+  "test_samples": 400,
+  "true_negative": 244,
+  "true_positive": 54
+}

@@ -28,3 +28,62 @@ stages:
       hash: md5
       md5: 176d84c03201899dc9f77aab50c45931
       size: 130296
+  train:
+    cmd: python -m src.training.train --regularization-strength 1.0
+      --max-iterations 1000 --random-state 42
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 176d84c03201899dc9f77aab50c45931
+      size: 130296
+    - path: requirements.lock.txt
+      hash: md5
+      md5: 53abde3279c053f87dafb73a6d7f0925
+      size: 2012
+    - path: src/training/train.py
+      hash: md5
+      md5: 8dfed0c5e75894575f8fbef0c8409b8d
+      size: 4916
+    params:
+      params.yaml:
+        train.max_iterations: 1000
+        train.random_state: 42
+        train.regularization_strength: 1.0
+    outs:
+    - path: models/churn_model.joblib
+      hash: md5
+      md5: 2638ab08531f1f5f4400158642dff9c2
+      size: 5370
+  evaluate:
+    cmd: python -m src.training.evaluate --minimum-accuracy 0.65
+      --minimum-roc-auc 0.7
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 3e8cb3722c5581c12d257823adace1e7
+      size: 32879
+    - path: models/churn_model.joblib
+      hash: md5
+      md5: 2638ab08531f1f5f4400158642dff9c2
+      size: 5370
+    - path: requirements.lock.txt
+      hash: md5
+      md5: 53abde3279c053f87dafb73a6d7f0925
+      size: 2012
+    - path: src/training/evaluate.py
+      hash: md5
+      md5: 85d8665d6ba09d77e230c4117a5c22bc
+      size: 4044
+    - path: src/training/train.py
+      hash: md5
+      md5: 8dfed0c5e75894575f8fbef0c8409b8d
+      size: 4916
+    params:
+      params.yaml:
+        evaluate.minimum_accuracy: 0.65
+        evaluate.minimum_roc_auc: 0.7
+    outs:
+    - path: reports/metrics/metrics.json
+      hash: md5
+      md5: 4931c486924cf3a5cf982120cea50865
+      size: 361

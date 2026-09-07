@@ -12,3 +12,32 @@ stages:
     outs:
     - data/processed/test.csv
     - data/processed/train.csv
+  train:
+    cmd: python -m src.training.train --regularization-strength
+      ${train.regularization_strength} --max-iterations ${train.max_iterations}
+      --random-state ${train.random_state}
+    deps:
+    - data/processed/train.csv
+    - requirements.lock.txt
+    - src/training/train.py
+    params:
+    - train.max_iterations
+    - train.random_state
+    - train.regularization_strength
+    outs:
+    - models/churn_model.joblib
+  evaluate:
+    cmd: python -m src.training.evaluate --minimum-accuracy
+      ${evaluate.minimum_accuracy} --minimum-roc-auc ${evaluate.minimum_roc_auc}
+    deps:
+    - data/processed/test.csv
+    - models/churn_model.joblib
+    - requirements.lock.txt
+    - src/training/evaluate.py
+    - src/training/train.py
+    params:
+    - evaluate.minimum_accuracy
+    - evaluate.minimum_roc_auc
+    metrics:
+    - reports/metrics/metrics.json:
+        cache: false

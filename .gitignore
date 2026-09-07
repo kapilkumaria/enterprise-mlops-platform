@@ -43,10 +43,8 @@ mlartifacts/
 
 # Generated model artifacts
 artifacts/
-models/
 *.pkl
 *.pickle
-*.joblib
 
 # DVC local files and cache
 .dvc/cache/
