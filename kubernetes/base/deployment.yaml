@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: churn-api
+  namespace: mlops
+  labels:
+    app.kubernetes.io/name: churn-api
+    app.kubernetes.io/component: inference
+    app.kubernetes.io/part-of: enterprise-mlops-platform
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: churn-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: churn-api
+        app.kubernetes.io/component: inference
+        app.kubernetes.io/part-of: enterprise-mlops-platform
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: churn-api
+          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: churn-api-config
+          env:
+            - name: HOME
+              value: /tmp
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: temporary-storage
+              mountPath: /tmp
+      volumes:
+        - name: temporary-storage
+          emptyDir: {}

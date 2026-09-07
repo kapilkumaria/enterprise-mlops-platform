@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: churn-api
+  namespace: mlops
+  labels:
+    app.kubernetes.io/name: churn-api
+    app.kubernetes.io/part-of: enterprise-mlops-platform
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: churn-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
