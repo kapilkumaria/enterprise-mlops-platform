@@ -1,0 +1,14 @@
+stages:
+  prepare:
+    cmd: python -m src.training.prepare --test-size ${prepare.test_size}
+      --random-state ${prepare.random_state}
+    deps:
+    - data/raw/customer_churn.csv
+    - requirements.lock.txt
+    - src/training/prepare.py
+    params:
+    - prepare.random_state
+    - prepare.test_size
+    outs:
+    - data/processed/test.csv
+    - data/processed/train.csv

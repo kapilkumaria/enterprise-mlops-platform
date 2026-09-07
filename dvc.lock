@@ -1,0 +1,30 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m src.training.prepare --test-size 0.2 --random-state 42
+    deps:
+    - path: data/raw/customer_churn.csv
+      hash: md5
+      md5: 24424dd16d0c306e6ea3c53bfa1a4561
+      size: 162994
+    - path: requirements.lock.txt
+      hash: md5
+      md5: 53abde3279c053f87dafb73a6d7f0925
+      size: 2012
+    - path: src/training/prepare.py
+      hash: md5
+      md5: 82a8be9008b51025b767875a9cb3e204
+      size: 5278
+    params:
+      params.yaml:
+        prepare.random_state: 42
+        prepare.test_size: 0.2
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 3e8cb3722c5581c12d257823adace1e7
+      size: 32879
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 176d84c03201899dc9f77aab50c45931
+      size: 130296
