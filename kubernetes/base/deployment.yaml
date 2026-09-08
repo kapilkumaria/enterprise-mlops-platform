@@ -30,8 +30,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: churn-api
-          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-api:latest
-          imagePullPolicy: IfNotPresent
+          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-api@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8000

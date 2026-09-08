@@ -7,6 +7,12 @@ resources:
   - deployment.yaml
   - service.yaml
   - hpa.yaml
+  - mlflow-serviceaccount.yaml
+  - storageclass-gp3.yaml
+  - mlflow-pvc.yaml
+  - mlflow-deployment.yaml
+  - mlflow-service.yaml
+  - networkpolicy.yaml
 labels:
   - pairs:
       app.kubernetes.io/managed-by: kustomize
