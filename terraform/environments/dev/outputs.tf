@@ -72,3 +72,23 @@ output "eks_node_role_arn" {
   description = "ARN of the EKS worker-node role."
   value       = module.eks.node_role_arn
 }
+
+output "mlflow_role_arn" {
+  description = "IAM role used by the MLflow Kubernetes service account."
+  value       = aws_iam_role.mlflow.arn
+}
+
+output "ebs_csi_role_arn" {
+  description = "IAM role used by the EBS CSI controller."
+  value       = aws_iam_role.ebs_csi.arn
+}
+
+output "mlflow_pod_identity_association_id" {
+  description = "ID of the MLflow EKS Pod Identity association."
+  value       = aws_eks_pod_identity_association.mlflow.association_id
+}
+
+output "ebs_csi_pod_identity_association_id" {
+  description = "ID of the EBS CSI EKS Pod Identity association."
+  value       = aws_eks_pod_identity_association.ebs_csi.association_id
+}
