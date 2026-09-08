@@ -1,0 +1,57 @@
+FROM python:3.12-slim-bookworm
+
+ARG APP_USER=mlflow
+ARG APP_UID=10002
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+ENV HOME=/tmp
+ENV AWS_REGION=us-east-1
+ENV AWS_DEFAULT_REGION=us-east-1
+
+WORKDIR /mlflow
+
+RUN apt-get update \
+    && apt-get upgrade --yes \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd \
+        --gid "${APP_UID}" \
+        "${APP_USER}" \
+    && useradd \
+        --uid "${APP_UID}" \
+        --gid "${APP_UID}" \
+        --create-home \
+        --shell /usr/sbin/nologin \
+        "${APP_USER}" \
+    && mkdir -p /mlflow/data /tmp/mlflow \
+    && chown -R "${APP_UID}:${APP_UID}" \
+        /mlflow /tmp/mlflow
+
+COPY requirements-mlflow.txt .
+
+RUN python -m pip install \
+        --upgrade pip \
+    && python -m pip install \
+        --requirement requirements-mlflow.txt \
+    && python -m pip uninstall \
+        --yes \
+        setuptools \
+        wheel \
+    && python -m pip uninstall \
+        --yes \
+        pip
+
+USER ${APP_UID}:${APP_UID}
+
+EXPOSE 5000
+
+HEALTHCHECK \
+    --interval=30s \
+    --timeout=5s \
+    --start-period=30s \
+    --retries=3 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)"]
+
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", "--workers", "1", "--backend-store-uri", "sqlite:////mlflow/data/mlflow.db", "--artifacts-destination", "s3://enterprise-mlops-platform-dev-931058976119/mlflow", "--allowed-hosts", "mlflow,mlflow.mlops,mlflow.mlops.svc,mlflow.mlops.svc.cluster.local,localhost,127.0.0.1"]

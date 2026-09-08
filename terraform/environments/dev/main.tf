@@ -20,6 +20,20 @@ module "ecr" {
   tags                  = local.common_tags
 }
 
+
+module "ecr_mlflow" {
+  source = "../../modules/ecr"
+
+  repository_name       = "${local.name_prefix}-mlflow"
+  image_retention_count = var.ecr_image_retention_count
+  tags = merge(
+    local.common_tags,
+    {
+      Component = "mlflow"
+    }
+  )
+}
+
 module "storage" {
   source = "../../modules/storage"
 

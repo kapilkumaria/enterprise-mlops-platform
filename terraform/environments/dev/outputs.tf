@@ -92,3 +92,13 @@ output "ebs_csi_pod_identity_association_id" {
   description = "ID of the EBS CSI EKS Pod Identity association."
   value       = aws_eks_pod_identity_association.ebs_csi.association_id
 }
+
+output "mlflow_ecr_repository_name" {
+  description = "Name of the MLflow server ECR repository."
+  value       = module.ecr_mlflow.repository_name
+}
+
+output "mlflow_ecr_repository_url" {
+  description = "URL of the MLflow server ECR repository."
+  value       = module.ecr_mlflow.repository_url
+}
