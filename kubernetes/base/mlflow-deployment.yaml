@@ -46,6 +46,8 @@ spec:
           env:
             - name: HOME
               value: /tmp/mlflow
+            - name: TMPDIR
+              value: /tmp/mlflow
             - name: AWS_REGION
               value: us-east-1
             - name: AWS_DEFAULT_REGION
@@ -74,10 +76,10 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 512Mi
+              memory: 1Gi
             limits:
               cpu: "1"
-              memory: 1Gi
+              memory: 2Gi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
