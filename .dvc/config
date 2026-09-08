@@ -1,0 +1,4 @@
+[core]
+    remote = artifact-store
+['remote "artifact-store"']
+    url = s3://enterprise-mlops-platform-dev-931058976119/dvc
