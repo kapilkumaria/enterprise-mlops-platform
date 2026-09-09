@@ -8,7 +8,7 @@ images:
     digest: sha256:2d48f8360dd2b6cc1a79a18703458f0c7e2d0d5ab806313aec7de2cc5958807a
   - name: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-mlflow
     newName: 931058976119.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-platform-dev-mlflow
-    digest: sha256:5f0245a5917298bd956b2ca8a5a801bcae8acd60a7e3c93600c318e09c4dfaf5
+    digest: sha256:a214b332ec52447e5fe9ef046772656226088344320dc7231bea9827f79be79f
 labels:
   - pairs:
       app.kubernetes.io/environment: dev
