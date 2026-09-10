@@ -46,6 +46,77 @@ jobs:
 
           echo "Publishing commit ${GITHUB_SHA}"
 
+      - name: Inspect selected OIDC claims
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          request_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com"
+
+          oidc_token="$(
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --header \
+              "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+              "${request_url}" |
+              jq --exit-status --raw-output '.value'
+          )"
+
+          export OIDC_TOKEN="${oidc_token}"
+
+          python - <<'PYTHON'
+          import base64
+          import json
+          import os
+
+          token = os.environ["OIDC_TOKEN"]
+          parts = token.split(".")
+
+          if len(parts) != 3:
+              raise SystemExit("OIDC response was not a JWT")
+
+          payload = parts[1]
+          payload += "=" * (-len(payload) % 4)
+
+          claims = json.loads(
+              base64.urlsafe_b64decode(payload).decode("utf-8")
+          )
+
+          selected_claims = [
+              "iss",
+              "aud",
+              "sub",
+              "repository",
+              "repository_id",
+              "repository_owner",
+              "repository_owner_id",
+              "repository_visibility",
+              "ref",
+              "ref_type",
+              "sha",
+              "event_name",
+              "workflow",
+              "workflow_ref",
+              "workflow_sha",
+              "job_workflow_ref",
+              "runner_environment",
+          ]
+
+          for name in selected_claims:
+              if name in claims:
+                  value = claims[name]
+
+                  if isinstance(value, list):
+                      value = ",".join(str(item) for item in value)
+
+                  print(f"OIDC_CLAIM_{name.upper()}={value}")
+          PYTHON
+
+          unset OIDC_TOKEN
+          unset oidc_token
+
       - name: Define immutable image coordinates
         shell: bash
         run: |
