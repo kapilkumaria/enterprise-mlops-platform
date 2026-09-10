@@ -102,3 +102,8 @@ output "mlflow_ecr_repository_url" {
   description = "URL of the MLflow server ECR repository."
   value       = module.ecr_mlflow.repository_url
 }
+
+output "github_ecr_publisher_role_arn" {
+  description = "IAM role assumed by GitHub Actions to publish project images."
+  value       = aws_iam_role.github_ecr_publisher.arn
+}
