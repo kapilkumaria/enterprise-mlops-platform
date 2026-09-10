@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.12.11"
   TERRAFORM_VERSION: "1.10.5"
   EXPECTED_RAW_MD5: "24424dd16d0c306e6ea3c53bfa1a4561"
   EXPECTED_TRAIN_MD5: "176d84c03201899dc9f77aab50c45931"
@@ -312,7 +312,7 @@ jobs:
             .
 
       - name: Scan churn API image
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: project8-api-ci:${{ github.sha }}
           scan-type: image
@@ -329,7 +329,7 @@ jobs:
             .
 
       - name: Scan MLflow image
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: project8-mlflow-ci:${{ github.sha }}
           scan-type: image
