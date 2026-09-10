@@ -10,6 +10,12 @@ data "aws_eks_addon_version" "ebs_csi" {
   most_recent        = true
 }
 
+data "aws_eks_addon_version" "metrics_server" {
+  addon_name         = "metrics-server"
+  kubernetes_version = var.kubernetes_version
+  most_recent        = true
+}
+
 data "aws_iam_policy_document" "pod_identity_assume_role" {
   statement {
     effect = "Allow"
@@ -38,6 +44,22 @@ resource "aws_eks_addon" "pod_identity_agent" {
     local.common_tags,
     {
       Name = "${local.name_prefix}-pod-identity-agent"
+    }
+  )
+}
+
+resource "aws_eks_addon" "metrics_server" {
+  cluster_name  = module.eks.cluster_name
+  addon_name    = "metrics-server"
+  addon_version = data.aws_eks_addon_version.metrics_server.version
+
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "PRESERVE"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-metrics-server"
     }
   )
 }
