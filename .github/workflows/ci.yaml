@@ -258,15 +258,15 @@ jobs:
                   "931058976119.dkr.ecr.us-east-1.amazonaws.com/"
                   "enterprise-mlops-platform-dev-api@"
                   "sha256:"
-                  "2d48f8360dd2b6cc1a79a18703458f0c"
-                  "7e2d0d5ab806313aec7de2cc5958807a"
+                  "380128be5300c78d73ff5d8f4c7b845d"
+                  "1cbdc558a7a68d2f74eaf8c61b9904b0"
               ),
               "mlflow": (
                   "931058976119.dkr.ecr.us-east-1.amazonaws.com/"
                   "enterprise-mlops-platform-dev-mlflow@"
                   "sha256:"
-                  "a214b332ec52447e5fe9ef04677265622"
-                  "6088344320dc7231bea9827f79be79f"
+                  "59e082cf38097c3c6036b28cc368d97d"
+                  "3e72a6e2f961d33baa0a387ebdd626a5"
               ),
           }
 
