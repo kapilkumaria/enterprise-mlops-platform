@@ -1,0 +1,210 @@
+name: Publish Container Images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-container-images
+  cancel-in-progress: false
+
+env:
+  AWS_ACCOUNT_ID: "931058976119"
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::931058976119:role/enterprise-mlops-platform-dev-github-ecr-publisher
+  API_REPOSITORY: enterprise-mlops-platform-dev-api
+  MLFLOW_REPOSITORY: enterprise-mlops-platform-dev-mlflow
+
+jobs:
+  publish:
+    name: Scan and publish immutable images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out trusted commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify trusted publication context
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test "${GITHUB_REPOSITORY}" = \
+            "kapilkumaria/enterprise-mlops-platform"
+          test "${GITHUB_REF}" = "refs/heads/main"
+          test "${GITHUB_SHA}" = "$(git rev-parse HEAD)"
+
+          echo "Publishing commit ${GITHUB_SHA}"
+
+      - name: Define immutable image coordinates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          registry="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          image_tag="sha-${GITHUB_SHA}"
+
+          {
+            echo "IMAGE_TAG=${image_tag}"
+            echo "API_LOCAL_IMAGE=project8-api-publish:${GITHUB_SHA}"
+            echo "MLFLOW_LOCAL_IMAGE=project8-mlflow-publish:${GITHUB_SHA}"
+            echo "API_IMAGE=${registry}/${API_REPOSITORY}:${image_tag}"
+            echo "MLFLOW_IMAGE=${registry}/${MLFLOW_REPOSITORY}:${image_tag}"
+          } >>"${GITHUB_ENV}"
+
+      - name: Build churn API image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker build \
+            --file docker/Dockerfile \
+            --tag "${API_LOCAL_IMAGE}" \
+            .
+
+      - name: Scan churn API image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.API_LOCAL_IMAGE }}
+          scan-type: image
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Build MLflow image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker build \
+            --file docker/Dockerfile.mlflow \
+            --tag "${MLFLOW_LOCAL_IMAGE}" \
+            .
+
+      - name: Scan MLflow image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.MLFLOW_LOCAL_IMAGE }}
+          scan-type: image
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Assume ECR publishing role through OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: project8-image-publisher
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Verify short-lived AWS identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          account="$(
+            aws sts get-caller-identity \
+              --query Account \
+              --output text
+          )"
+
+          assumed_arn="$(
+            aws sts get-caller-identity \
+              --query Arn \
+              --output text
+          )"
+
+          echo "AWS account: ${account}"
+          echo "Assumed identity: ${assumed_arn}"
+
+          test "${account}" = "${AWS_ACCOUNT_ID}"
+
+          case "${assumed_arn}" in
+            arn:aws:sts::${AWS_ACCOUNT_ID}:assumed-role/enterprise-mlops-platform-dev-github-ecr-publisher/*)
+              ;;
+            *)
+              echo "Unexpected AWS identity"
+              exit 1
+              ;;
+          esac
+
+      - name: Authenticate Docker to Amazon ECR
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          registry="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+          aws ecr get-login-password \
+            --region "${AWS_REGION}" |
+            docker login \
+              --username AWS \
+              --password-stdin \
+              "${registry}"
+
+      - name: Publish both immutable images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker tag "${API_LOCAL_IMAGE}" "${API_IMAGE}"
+          docker tag "${MLFLOW_LOCAL_IMAGE}" "${MLFLOW_IMAGE}"
+
+          docker push "${API_IMAGE}"
+          docker push "${MLFLOW_IMAGE}"
+
+      - name: Resolve and verify ECR digests
+        id: digests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api_digest="$(
+            aws ecr describe-images \
+              --repository-name "${API_REPOSITORY}" \
+              --image-ids imageTag="${IMAGE_TAG}" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text
+          )"
+
+          mlflow_digest="$(
+            aws ecr describe-images \
+              --repository-name "${MLFLOW_REPOSITORY}" \
+              --image-ids imageTag="${IMAGE_TAG}" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text
+          )"
+
+          [[ "${api_digest}" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "${mlflow_digest}" =~ ^sha256:[a-f0-9]{64}$ ]]
+
+          {
+            echo "api-digest=${api_digest}"
+            echo "mlflow-digest=${mlflow_digest}"
+          } >>"${GITHUB_OUTPUT}"
+
+          {
+            echo "## Immutable container publication"
+            echo
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- API: \`${API_IMAGE%:*}@${api_digest}\`"
+            echo "- MLflow: \`${MLFLOW_IMAGE%:*}@${mlflow_digest}\`"
+            echo
+            echo "No Kubernetes deployment was performed."
+          } >>"${GITHUB_STEP_SUMMARY}"
+
+          echo "API digest:    ${api_digest}"
+          echo "MLflow digest: ${mlflow_digest}"
