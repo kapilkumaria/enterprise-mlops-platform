@@ -1,0 +1,339 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  TERRAFORM_VERSION: "1.10.5"
+  EXPECTED_RAW_MD5: "24424dd16d0c306e6ea3c53bfa1a4561"
+  EXPECTED_TRAIN_MD5: "176d84c03201899dc9f77aab50c45931"
+  EXPECTED_TEST_MD5: "3e8cb3722c5581c12d257823adace1e7"
+  EXPECTED_MODEL_MD5: "2638ab08531f1f5f4400158642dff9c2"
+  EXPECTED_METRICS_MD5: "4931c486924cf3a5cf982120cea50865"
+
+jobs:
+  ml-pipeline:
+    name: ML pipeline and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.lock.txt
+
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --requirement requirements.lock.txt
+
+      - name: Regenerate deterministic dataset
+        run: |
+          python scripts/generate_dataset.py
+          actual_md5="$(md5sum data/raw/customer_churn.csv | awk '{print $1}')"
+          actual_size="$(stat --format='%s' data/raw/customer_churn.csv)"
+
+          echo "Raw dataset MD5:  ${actual_md5}"
+          echo "Raw dataset size: ${actual_size}"
+
+          test "${actual_md5}" = "${EXPECTED_RAW_MD5}"
+          test "${actual_size}" -eq 162994
+
+      - name: Reproduce DVC pipeline
+        run: |
+          dvc repro
+          dvc status
+
+      - name: Verify deterministic pipeline artifacts
+        run: |
+          train_md5="$(md5sum data/processed/train.csv | awk '{print $1}')"
+          test_md5="$(md5sum data/processed/test.csv | awk '{print $1}')"
+          model_md5="$(md5sum models/churn_model.joblib | awk '{print $1}')"
+          metrics_md5="$(md5sum reports/metrics/metrics.json | awk '{print $1}')"
+
+          echo "Training data: ${train_md5}"
+          echo "Testing data:  ${test_md5}"
+          echo "Model:         ${model_md5}"
+          echo "Metrics:       ${metrics_md5}"
+
+          test "${train_md5}" = "${EXPECTED_TRAIN_MD5}"
+          test "${test_md5}" = "${EXPECTED_TEST_MD5}"
+          test "${model_md5}" = "${EXPECTED_MODEL_MD5}"
+          test "${metrics_md5}" = "${EXPECTED_METRICS_MD5}"
+
+      - name: Run Python tests
+        run: pytest --verbose
+
+      - name: Run Ruff
+        run: ruff check src tests scripts
+
+      - name: Verify reproducible source state
+        run: git diff --exit-code
+
+  infrastructure:
+    name: Infrastructure validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install infrastructure validation tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            checkov==3.3.16 \
+            PyYAML==6.0.3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive terraform
+
+      - name: Validate development Terraform
+        run: |
+          terraform \
+            -chdir=terraform/environments/dev \
+            init \
+            -backend=false \
+            -input=false
+
+          terraform \
+            -chdir=terraform/environments/dev \
+            validate
+
+      - name: Validate bootstrap Terraform
+        run: |
+          terraform \
+            -chdir=terraform/bootstrap \
+            init \
+            -backend=false \
+            -input=false
+
+          terraform \
+            -chdir=terraform/bootstrap \
+            validate
+
+      - name: Scan Terraform with Checkov
+        run: |
+          checkov \
+            --directory terraform \
+            --framework terraform \
+            --compact \
+            --quiet
+
+      - name: Render Kubernetes manifests
+        run: |
+          kubectl kustomize kubernetes/overlays/dev \
+            > "${RUNNER_TEMP}/project8-rendered.yaml"
+
+      - name: Verify rendered Kubernetes resources
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          import yaml
+
+          manifest = (
+              Path(os.environ["RUNNER_TEMP"])
+              / "project8-rendered.yaml"
+          )
+
+          documents = [
+              document
+              for document in yaml.safe_load_all(
+                  manifest.read_text()
+              )
+              if document
+          ]
+
+          expected = {
+              ("Namespace", "mlops"),
+              ("StorageClass", "ebs-gp3"),
+              ("ServiceAccount", "mlflow"),
+              ("ConfigMap", "churn-api-config"),
+              ("Service", "churn-api"),
+              ("Service", "mlflow"),
+              ("PersistentVolumeClaim", "mlflow-data"),
+              ("Deployment", "churn-api"),
+              ("Deployment", "mlflow"),
+              ("HorizontalPodAutoscaler", "churn-api"),
+              ("NetworkPolicy", "churn-api"),
+              ("NetworkPolicy", "mlflow"),
+          }
+
+          actual = {
+              (
+                  document["kind"],
+                  document["metadata"]["name"],
+              )
+              for document in documents
+          }
+
+          print(f"Rendered document count: {len(documents)}")
+
+          for kind, name in sorted(actual):
+              print(f"{kind}/{name}")
+
+          if len(documents) != 12:
+              raise SystemExit(
+                  "expected exactly 12 Kubernetes objects"
+              )
+
+          if actual != expected:
+              raise SystemExit(
+                  f"resource mismatch: "
+                  f"missing={expected - actual}, "
+                  f"unexpected={actual - expected}"
+              )
+          PY
+
+      - name: Verify immutable deployment images
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          import yaml
+
+          manifest = (
+              Path(os.environ["RUNNER_TEMP"])
+              / "project8-rendered.yaml"
+          )
+
+          documents = [
+              document
+              for document in yaml.safe_load_all(
+                  manifest.read_text()
+              )
+              if document
+          ]
+
+          expected = {
+              "churn-api": (
+                  "931058976119.dkr.ecr.us-east-1.amazonaws.com/"
+                  "enterprise-mlops-platform-dev-api@"
+                  "sha256:"
+                  "2d48f8360dd2b6cc1a79a18703458f0c"
+                  "7e2d0d5ab806313aec7de2cc5958807a"
+              ),
+              "mlflow": (
+                  "931058976119.dkr.ecr.us-east-1.amazonaws.com/"
+                  "enterprise-mlops-platform-dev-mlflow@"
+                  "sha256:"
+                  "a214b332ec52447e5fe9ef04677265622"
+                  "6088344320dc7231bea9827f79be79f"
+              ),
+          }
+
+          actual = {}
+
+          for document in documents:
+              if document["kind"] != "Deployment":
+                  continue
+
+              name = document["metadata"]["name"]
+              containers = document[
+                  "spec"
+              ]["template"]["spec"]["containers"]
+
+              if len(containers) != 1:
+                  raise SystemExit(
+                      f"{name} must have exactly one container"
+                  )
+
+              actual[name] = containers[0]["image"]
+
+          for name, image in sorted(actual.items()):
+              print(f"{name}: {image}")
+
+          if actual != expected:
+              raise SystemExit(
+                  "deployment images do not match approved digests"
+              )
+          PY
+
+      - name: Scan Kubernetes manifests with Checkov
+        run: |
+          checkov \
+            --file "${RUNNER_TEMP}/project8-rendered.yaml" \
+            --framework kubernetes \
+            --compact \
+            --quiet
+
+      - name: Verify validation did not change source
+        run: git diff --exit-code
+
+  containers:
+    name: Container build and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build churn API image
+        run: |
+          docker build \
+            --file docker/Dockerfile \
+            --tag project8-api-ci:${{ github.sha }} \
+            .
+
+      - name: Scan churn API image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: project8-api-ci:${{ github.sha }}
+          scan-type: image
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
+      - name: Build MLflow image
+        run: |
+          docker build \
+            --file docker/Dockerfile.mlflow \
+            --tag project8-mlflow-ci:${{ github.sha }} \
+            .
+
+      - name: Scan MLflow image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: project8-mlflow-ci:${{ github.sha }}
+          scan-type: image
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
