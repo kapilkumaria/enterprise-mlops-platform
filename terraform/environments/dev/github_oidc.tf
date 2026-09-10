@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "github_ecr_publisher_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:kapilkumaria/enterprise-mlops-platform:ref:refs/heads/main",
+        "repo:kapilkumaria@42500918/enterprise-mlops-platform@1359579388:ref:refs/heads/main",
       ]
     }
   }
