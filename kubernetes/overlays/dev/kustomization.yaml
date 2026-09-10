@@ -5,10 +5,10 @@ resources:
 images:
   - name: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-api
     newName: 931058976119.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-platform-dev-api
-    digest: sha256:2d48f8360dd2b6cc1a79a18703458f0c7e2d0d5ab806313aec7de2cc5958807a
+    digest: sha256:380128be5300c78d73ff5d8f4c7b845d1cbdc558a7a68d2f74eaf8c61b9904b0
   - name: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-mlflow
     newName: 931058976119.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-platform-dev-mlflow
-    digest: sha256:a214b332ec52447e5fe9ef046772656226088344320dc7231bea9827f79be79f
+    digest: sha256:59e082cf38097c3c6036b28cc368d97d3e72a6e2f961d33baa0a387ebdd626a5
 labels:
   - pairs:
       app.kubernetes.io/environment: dev
