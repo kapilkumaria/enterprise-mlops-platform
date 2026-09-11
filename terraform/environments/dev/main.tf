@@ -58,6 +58,13 @@ module "eks" {
   node_min_size       = var.eks_node_min_size
   node_max_size       = var.eks_node_max_size
 
+  advanced_node_enabled        = var.advanced_node_enabled
+  advanced_node_instance_types = var.advanced_node_instance_types
+  advanced_node_desired_size   = var.advanced_node_desired_size
+  advanced_node_min_size       = var.advanced_node_min_size
+  advanced_node_max_size       = var.advanced_node_max_size
+  advanced_node_disk_size      = var.advanced_node_disk_size
+
   cluster_log_retention_days = 7
   tags                       = local.common_tags
 }

@@ -95,3 +95,48 @@ resource "aws_eks_node_group" "system" {
     }
   )
 }
+
+resource "aws_eks_node_group" "advanced" {
+  count = var.advanced_node_enabled ? 1 : 0
+
+  cluster_name    = aws_eks_cluster.this.name
+  node_group_name = "advanced-mlops"
+  node_role_arn   = aws_iam_role.node.arn
+  subnet_ids      = var.private_subnet_ids
+  version         = var.kubernetes_version
+
+  capacity_type  = "ON_DEMAND"
+  ami_type       = "AL2023_x86_64_STANDARD"
+  instance_types = var.advanced_node_instance_types
+  disk_size      = var.advanced_node_disk_size
+
+  scaling_config {
+    desired_size = var.advanced_node_desired_size
+    min_size     = var.advanced_node_min_size
+    max_size     = var.advanced_node_max_size
+  }
+
+  update_config {
+    max_unavailable = 1
+  }
+
+  labels = {
+    environment = "dev"
+    role        = "advanced-mlops"
+    workload    = "ml-platform"
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.worker_node,
+    aws_iam_role_policy_attachment.container_registry,
+    aws_iam_role_policy_attachment.cni,
+  ]
+
+  tags = merge(
+    var.tags,
+    {
+      Component = "advanced-mlops"
+      Name      = "${var.cluster_name}-advanced-mlops"
+    }
+  )
+}

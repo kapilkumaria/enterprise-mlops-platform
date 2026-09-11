@@ -107,3 +107,8 @@ output "github_ecr_publisher_role_arn" {
   description = "IAM role assumed by GitHub Actions to publish project images."
   value       = aws_iam_role.github_ecr_publisher.arn
 }
+
+output "advanced_node_group_name" {
+  description = "Name of the dedicated advanced MLOps node group."
+  value       = module.eks.advanced_node_group_name
+}

@@ -76,3 +76,44 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "advanced_node_enabled" {
+  description = "Create dedicated worker capacity for advanced MLOps components."
+  type        = bool
+  default     = false
+}
+
+variable "advanced_node_instance_types" {
+  description = "EC2 instance types used by the advanced MLOps node group."
+  type        = list(string)
+  default     = ["m7i.large"]
+
+  validation {
+    condition     = length(var.advanced_node_instance_types) > 0
+    error_message = "Provide at least one advanced MLOps instance type."
+  }
+}
+
+variable "advanced_node_desired_size" {
+  description = "Desired number of advanced MLOps worker nodes."
+  type        = number
+  default     = 2
+}
+
+variable "advanced_node_min_size" {
+  description = "Minimum number of advanced MLOps worker nodes."
+  type        = number
+  default     = 1
+}
+
+variable "advanced_node_max_size" {
+  description = "Maximum number of advanced MLOps worker nodes."
+  type        = number
+  default     = 2
+}
+
+variable "advanced_node_disk_size" {
+  description = "Root-volume size in GiB for advanced MLOps workers."
+  type        = number
+  default     = 50
+}

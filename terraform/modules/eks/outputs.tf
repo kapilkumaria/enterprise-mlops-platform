@@ -38,3 +38,11 @@ output "node_role_arn" {
   description = "ARN of the EKS node IAM role."
   value       = aws_iam_role.node.arn
 }
+
+output "advanced_node_group_name" {
+  description = "Name of the dedicated advanced MLOps node group."
+  value = try(
+    aws_eks_node_group.advanced[0].node_group_name,
+    null,
+  )
+}
