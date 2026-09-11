@@ -1,0 +1,112 @@
+{
+  "components": {
+    "cert_manager": {
+      "sha256": "0546b64bc806237885ccc80e345bce1585eb2ec2f476a7af593f030abdb3a16f",
+      "source": "https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml",
+      "version": "v1.18.2"
+    },
+    "kubeflow_pipelines_cluster": {
+      "sha256": "bf04ab670974005d2c87262bf7c33eb720fca37b1fa0bce3e98a1913d8d1cf34",
+      "source": "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=2.17.0",
+      "version": "2.17.0"
+    },
+    "kubeflow_pipelines_platform": {
+      "sha256": "2f755001f3f6236b6ea587787eaa89fedd0a1310ceed88cf4416b35540b6f7f5",
+      "source": "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/platform-agnostic-k8s-native?ref=2.17.0",
+      "version": "2.17.0"
+    }
+  },
+  "expected_inventory": {
+    "containers": 23,
+    "custom_resource_definitions": 19,
+    "deployments": 17,
+    "documents": 143,
+    "unique_images": 18
+  },
+  "image_policy": {
+    "digest_resolution_status": "resolved",
+    "digest_type": "registry_manifest_digest",
+    "installation_allowed": true,
+    "installation_allowed_while_pending": false,
+    "latest_tags_allowed": false,
+    "resolution_method": "docker buildx imagetools inspect",
+    "resolved_count": 18,
+    "resolved_images": {
+      "docker.io/alpine:3.23": {
+        "digest": "sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40",
+        "pinned_image": "docker.io/alpine@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40"
+      },
+      "gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0": {
+        "digest": "sha256:51404ef4419c1426da80f3e14a83dcb55f65bb5a971371d36d14cec1e50af830",
+        "pinned_image": "gcr.io/tfx-oss-public/ml_metadata_store_server@sha256:51404ef4419c1426da80f3e14a83dcb55f65bb5a971371d36d14cec1e50af830"
+      },
+      "ghcr.io/chrislusf/seaweedfs:4.34": {
+        "digest": "sha256:6620371e8af8282056685c652d4637265698c9e2c2d59f9594e6ac333ad6c634",
+        "pinned_image": "ghcr.io/chrislusf/seaweedfs@sha256:6620371e8af8282056685c652d4637265698c9e2c2d59f9594e6ac333ad6c634"
+      },
+      "ghcr.io/kubeflow/kfp-api-server:2.17.0": {
+        "digest": "sha256:0055da3edc85dead204dc4a990b1bd542092fb031afa4d9c696621431ae95eac",
+        "pinned_image": "ghcr.io/kubeflow/kfp-api-server@sha256:0055da3edc85dead204dc4a990b1bd542092fb031afa4d9c696621431ae95eac"
+      },
+      "ghcr.io/kubeflow/kfp-cache-deployer:2.17.0": {
+        "digest": "sha256:a713d1e3cafc089c0d530bd9818bc5cc228cb9cafea5c1d1de8eed45adbba26a",
+        "pinned_image": "ghcr.io/kubeflow/kfp-cache-deployer@sha256:a713d1e3cafc089c0d530bd9818bc5cc228cb9cafea5c1d1de8eed45adbba26a"
+      },
+      "ghcr.io/kubeflow/kfp-cache-server:2.17.0": {
+        "digest": "sha256:066ae1cbb26db5b05ea5ddddecfbf41d37dbe77a700bb6d6b3222a76426099fb",
+        "pinned_image": "ghcr.io/kubeflow/kfp-cache-server@sha256:066ae1cbb26db5b05ea5ddddecfbf41d37dbe77a700bb6d6b3222a76426099fb"
+      },
+      "ghcr.io/kubeflow/kfp-frontend:2.17.0": {
+        "digest": "sha256:d28a5d7e15d23e68cdd0fc6099062b2910548e756465dcc0481203094dfef695",
+        "pinned_image": "ghcr.io/kubeflow/kfp-frontend@sha256:d28a5d7e15d23e68cdd0fc6099062b2910548e756465dcc0481203094dfef695"
+      },
+      "ghcr.io/kubeflow/kfp-metadata-envoy:2.17.0": {
+        "digest": "sha256:f1616d708abd8074894472df787a7b6d2bab80aa228e3bd97e2c63e104d74947",
+        "pinned_image": "ghcr.io/kubeflow/kfp-metadata-envoy@sha256:f1616d708abd8074894472df787a7b6d2bab80aa228e3bd97e2c63e104d74947"
+      },
+      "ghcr.io/kubeflow/kfp-metadata-writer:2.17.0": {
+        "digest": "sha256:a9b165ffde60a122c971b6b8da6e300fc5087637dbe0a87ed4b824e1e39f9900",
+        "pinned_image": "ghcr.io/kubeflow/kfp-metadata-writer@sha256:a9b165ffde60a122c971b6b8da6e300fc5087637dbe0a87ed4b824e1e39f9900"
+      },
+      "ghcr.io/kubeflow/kfp-persistence-agent:2.17.0": {
+        "digest": "sha256:a04dea78ac48256d700193e3019abb5583492406dd94ff0ff937ee29cda93a70",
+        "pinned_image": "ghcr.io/kubeflow/kfp-persistence-agent@sha256:a04dea78ac48256d700193e3019abb5583492406dd94ff0ff937ee29cda93a70"
+      },
+      "ghcr.io/kubeflow/kfp-scheduled-workflow-controller:2.17.0": {
+        "digest": "sha256:2008b56600ef30d13ddca8cef695acb38e3d0946cb3d411fbb9844cd4d64d403",
+        "pinned_image": "ghcr.io/kubeflow/kfp-scheduled-workflow-controller@sha256:2008b56600ef30d13ddca8cef695acb38e3d0946cb3d411fbb9844cd4d64d403"
+      },
+      "ghcr.io/kubeflow/kfp-viewer-crd-controller:2.17.0": {
+        "digest": "sha256:4bf79ecd6353699aa090ae090baa0d491b5a3f2a28ccc15ac14b55e0c770f76f",
+        "pinned_image": "ghcr.io/kubeflow/kfp-viewer-crd-controller@sha256:4bf79ecd6353699aa090ae090baa0d491b5a3f2a28ccc15ac14b55e0c770f76f"
+      },
+      "ghcr.io/kubeflow/kfp-visualization-server:2.17.0": {
+        "digest": "sha256:7a0a27674889d66f721939ef742eaec9c3a9487d2648c40e2772550c51dace3d",
+        "pinned_image": "ghcr.io/kubeflow/kfp-visualization-server@sha256:7a0a27674889d66f721939ef742eaec9c3a9487d2648c40e2772550c51dace3d"
+      },
+      "mysql:8.4": {
+        "digest": "sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26",
+        "pinned_image": "mysql@sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26"
+      },
+      "quay.io/argoproj/workflow-controller:v4.0.5": {
+        "digest": "sha256:4001b58f3c34bb65015c79919157e45f51f4d7450806c64987abdb7dc86f8453",
+        "pinned_image": "quay.io/argoproj/workflow-controller@sha256:4001b58f3c34bb65015c79919157e45f51f4d7450806c64987abdb7dc86f8453"
+      },
+      "quay.io/jetstack/cert-manager-cainjector:v1.18.2": {
+        "digest": "sha256:af59e01ad9756a1034fbf948330e75702e5d79b3577f323f6a9947707ba262fc",
+        "pinned_image": "quay.io/jetstack/cert-manager-cainjector@sha256:af59e01ad9756a1034fbf948330e75702e5d79b3577f323f6a9947707ba262fc"
+      },
+      "quay.io/jetstack/cert-manager-controller:v1.18.2": {
+        "digest": "sha256:81316365dc0b713eddddfbf9b8907b2939676e6c0e12beec0f9625f202a36d16",
+        "pinned_image": "quay.io/jetstack/cert-manager-controller@sha256:81316365dc0b713eddddfbf9b8907b2939676e6c0e12beec0f9625f202a36d16"
+      },
+      "quay.io/jetstack/cert-manager-webhook:v1.18.2": {
+        "digest": "sha256:9431f0d8b5103b06cc6138564f471ac02c6b2638c2fa399d81e28a01d817ae73",
+        "pinned_image": "quay.io/jetstack/cert-manager-webhook@sha256:9431f0d8b5103b06cc6138564f471ac02c6b2638c2fa399d81e28a01d817ae73"
+      }
+    },
+    "target_platform": "linux/amd64",
+    "unversioned_images_allowed": false
+  },
+  "schema_version": 1
+}

@@ -1,0 +1,40 @@
+{
+  "compatibility_boundaries": {
+    "disable_service_account_tokens": false,
+    "force_read_only_root_filesystem": false,
+    "force_runtime_user": false,
+    "inject_default_deny_network_policy": false,
+    "inject_generic_health_probes": false,
+    "replace_security_contexts": false,
+    "rewrite_rbac": false
+  },
+  "resource_defaults": {
+    "apply_to_init_containers": true,
+    "limits": {
+      "cpu": "1",
+      "memory": "1Gi"
+    },
+    "preserve_existing_values": true,
+    "requests": {
+      "cpu": "50m",
+      "memory": "128Mi"
+    }
+  },
+  "scheduling": {
+    "node_selector": {
+      "role": "advanced-mlops",
+      "workload": "ml-platform"
+    },
+    "preserve_existing_node_selectors": true
+  },
+  "schema_version": 1,
+  "validation": {
+    "expected_containers": 23,
+    "expected_deployments": 17,
+    "expected_resource_fields_added": 54,
+    "expected_unique_images": 18,
+    "required_preserved_node_selector": {
+      "kubernetes.io/os": "linux"
+    }
+  }
+}
