@@ -324,6 +324,75 @@ def apply_storage_compatibility(
     return added
 
 
+def configure_cache_server_tls_projection(
+    documents: list[dict[str, Any]],
+    policy: dict[str, Any],
+) -> bool:
+    """Map cert-manager TLS keys to cache-server filenames."""
+    cache = policy["platform_compatibility"]["cache_tls"]
+    deployment_name = "cache-server"
+    volume_name = "webhook-tls-certs"
+    secret_name = str(cache["secret_name"])
+
+    deployments = [
+        document
+        for document in documents
+        if document.get("kind") == "Deployment"
+        and document.get("metadata", {}).get("name") == deployment_name
+    ]
+
+    if len(deployments) != 1:
+        raise ValueError(
+            f"Expected exactly one cache-server Deployment, found {len(deployments)}"
+        )
+
+    specification = pod_spec(deployments[0])
+    volumes = [
+        volume
+        for volume in specification.get("volumes", [])
+        if volume.get("name") == volume_name
+    ]
+
+    if len(volumes) != 1:
+        raise ValueError(
+            f"Expected exactly one cache-server TLS volume, found {len(volumes)}"
+        )
+
+    secret = volumes[0].get("secret")
+
+    if not isinstance(secret, dict):
+        raise ValueError("Cache-server TLS volume is not a Secret")
+
+    existing_secret_name = secret.get("secretName")
+
+    if existing_secret_name != secret_name:
+        raise ValueError(f"Unexpected cache-server TLS Secret: {existing_secret_name}")
+
+    expected_items = [
+        {
+            "key": str(cache["ca_secret_key"]),
+            "path": str(cache["ca_file_name"]),
+        },
+        {
+            "key": str(cache["certificate_secret_key"]),
+            "path": str(cache["certificate_file_name"]),
+        },
+        {
+            "key": str(cache["private_key_secret_key"]),
+            "path": str(cache["private_key_file_name"]),
+        },
+    ]
+
+    existing_items = secret.get("items")
+
+    if existing_items is not None and existing_items != expected_items:
+        raise ValueError("Conflicting cache-server TLS projection")
+
+    secret["items"] = expected_items
+
+    return True
+
+
 def build_cache_tls_objects(
     policy: dict[str, Any],
 ) -> list[dict[str, Any]]:
@@ -534,6 +603,10 @@ def render(
         platform,
         policy,
     )
+    cache_tls_projection_configured = configure_cache_server_tls_projection(
+        platform,
+        policy,
+    )
     (
         legacy_cache_deployer_disabled,
         compatibility_objects_added,
@@ -626,6 +699,14 @@ def render(
     expected_compatibility_objects_added = validation[
         "expected_compatibility_objects_added"
     ]
+    expected_cache_tls_projection = validation[
+        "expected_cache_tls_projection_configured"
+    ]
+
+    if cache_tls_projection_configured is not expected_cache_tls_projection:
+        raise ValueError(
+            "Cache TLS projection status does not match the validation contract"
+        )
 
     if upstream_document_count != expected_upstream_documents:
         raise ValueError(
@@ -755,6 +836,7 @@ def render(
         "pvc_storage_classes_added": (pvc_storage_classes_added),
         "legacy_cache_deployer_disabled": (legacy_cache_deployer_disabled),
         "compatibility_objects_added": (compatibility_objects_added),
+        "cache_tls_projection_configured": (cache_tls_projection_configured),
         "containers_processed": container_count,
         "resource_fields_added": resource_fields_added,
         "existing_linux_selectors_preserved": (linux_selector_preserved),

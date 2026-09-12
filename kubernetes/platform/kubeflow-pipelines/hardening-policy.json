@@ -40,7 +40,8 @@
     "expected_rendered_documents": 146,
     "expected_platform_documents": 81,
     "expected_pvc_storage_classes_added": 2,
-    "expected_compatibility_objects_added": 3
+    "expected_compatibility_objects_added": 3,
+    "expected_cache_tls_projection_configured": true
   },
   "platform_compatibility": {
     "storage": {
@@ -61,7 +62,13 @@
       "secret_name": "webhook-server-tls",
       "service_name": "cache-server",
       "webhook_failure_policy": "Ignore",
-      "webhook_name": "cache-webhook-kubeflow"
+      "webhook_name": "cache-webhook-kubeflow",
+      "certificate_secret_key": "tls.crt",
+      "certificate_file_name": "cert.pem",
+      "private_key_secret_key": "tls.key",
+      "private_key_file_name": "key.pem",
+      "ca_secret_key": "ca.crt",
+      "ca_file_name": "ca.crt"
     }
   }
 }

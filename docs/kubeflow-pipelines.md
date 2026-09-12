@@ -293,6 +293,12 @@ is not shared with the separate KFP API webhook certificate. The cache
 webhook uses `failurePolicy: Ignore` and selects only Pods explicitly
 labelled with `pipelines.kubeflow.org/cache_enabled: "true"`.
 
+cert-manager stores the certificate and private key as `tls.crt` and
+`tls.key`, while the KFP 2.17.0 cache server reads `cert.pem` and
+`key.pem`. The renderer maps those Secret keys to the required filenames
+through the Pod volume projection. The CA remains available as
+`ca.crt`; the Secret itself is not copied or rewritten.
+
 The immutable upstream inventory remains 143 checksum-verified
 documents. Rendering adds three repository-managed compatibility
 objects, producing 146 total documents and 81 KFP platform documents.

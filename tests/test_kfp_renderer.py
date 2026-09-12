@@ -479,3 +479,101 @@ def test_existing_cache_tls_object_is_rejected() -> None:
             [cache_deployer, existing_issuer],
             compatibility_policy(),
         )
+
+
+def cache_server_deployment() -> dict:
+    """Build a representative cache-server Deployment."""
+    document = deployment()
+    document["metadata"]["name"] = "cache-server"
+    pod_specification = document["spec"]["template"]["spec"]
+    pod_specification["volumes"] = [
+        {
+            "name": "webhook-tls-certs",
+            "secret": {
+                "secretName": "webhook-server-tls",
+            },
+        }
+    ]
+    pod_specification["containers"][0]["volumeMounts"] = [
+        {
+            "name": "webhook-tls-certs",
+            "mountPath": "/etc/webhook/certs",
+            "readOnly": True,
+        }
+    ]
+    return document
+
+
+def test_cache_tls_secret_keys_are_projected() -> None:
+    """cert-manager keys must use cache-server filenames."""
+    renderer = load_renderer()
+    document = cache_server_deployment()
+    policy = compatibility_policy()
+    cache = policy["platform_compatibility"]["cache_tls"]
+    cache.update(
+        {
+            "certificate_secret_key": "tls.crt",
+            "certificate_file_name": "cert.pem",
+            "private_key_secret_key": "tls.key",
+            "private_key_file_name": "key.pem",
+            "ca_secret_key": "ca.crt",
+            "ca_file_name": "ca.crt",
+        }
+    )
+
+    configured = renderer.configure_cache_server_tls_projection(
+        [document],
+        policy,
+    )
+
+    assert configured is True
+    assert document["spec"]["template"]["spec"]["volumes"][0]["secret"] == {
+        "secretName": "webhook-server-tls",
+        "items": [
+            {
+                "key": "ca.crt",
+                "path": "ca.crt",
+            },
+            {
+                "key": "tls.crt",
+                "path": "cert.pem",
+            },
+            {
+                "key": "tls.key",
+                "path": "key.pem",
+            },
+        ],
+    }
+
+
+def test_conflicting_cache_tls_projection_is_rejected() -> None:
+    """An unexpected existing mapping must fail closed."""
+    renderer = load_renderer()
+    document = cache_server_deployment()
+    document["spec"]["template"]["spec"]["volumes"][0]["secret"]["items"] = [
+        {
+            "key": "tls.crt",
+            "path": "unexpected.pem",
+        }
+    ]
+    policy = compatibility_policy()
+    cache = policy["platform_compatibility"]["cache_tls"]
+    cache.update(
+        {
+            "certificate_secret_key": "tls.crt",
+            "certificate_file_name": "cert.pem",
+            "private_key_secret_key": "tls.key",
+            "private_key_file_name": "key.pem",
+            "ca_secret_key": "ca.crt",
+            "ca_file_name": "ca.crt",
+        }
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Conflicting cache-server TLS projection",
+    ):
+        renderer.configure_cache_server_tls_projection(
+            [document],
+            policy,
+        )
