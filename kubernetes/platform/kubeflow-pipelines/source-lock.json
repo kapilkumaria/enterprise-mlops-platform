@@ -20,7 +20,10 @@
     "containers": 23,
     "custom_resource_definitions": 19,
     "deployments": 17,
+    "direct_workload_images": 18,
     "documents": 143,
+    "indirect_images": 1,
+    "total_locked_images": 19,
     "unique_images": 18
   },
   "image_policy": {
@@ -30,7 +33,7 @@
     "installation_allowed_while_pending": false,
     "latest_tags_allowed": false,
     "resolution_method": "docker buildx imagetools inspect",
-    "resolved_count": 18,
+    "resolved_count": 19,
     "resolved_images": {
       "docker.io/alpine:3.23": {
         "digest": "sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40",
@@ -91,6 +94,10 @@
       "quay.io/argoproj/workflow-controller:v4.0.5": {
         "digest": "sha256:4001b58f3c34bb65015c79919157e45f51f4d7450806c64987abdb7dc86f8453",
         "pinned_image": "quay.io/argoproj/workflow-controller@sha256:4001b58f3c34bb65015c79919157e45f51f4d7450806c64987abdb7dc86f8453"
+      },
+      "quay.io/jetstack/cert-manager-acmesolver:v1.18.2": {
+        "digest": "sha256:1c81a771e3e3a210466aa25f5fc05ce5c286e0eb90d96563cc0275aaa50788c2",
+        "pinned_image": "quay.io/jetstack/cert-manager-acmesolver@sha256:1c81a771e3e3a210466aa25f5fc05ce5c286e0eb90d96563cc0275aaa50788c2"
       },
       "quay.io/jetstack/cert-manager-cainjector:v1.18.2": {
         "digest": "sha256:af59e01ad9756a1034fbf948330e75702e5d79b3577f323f6a9947707ba262fc",

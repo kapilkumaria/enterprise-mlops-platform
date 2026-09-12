@@ -24,7 +24,7 @@ The upstream sources, source checksums, and container image digests are
 recorded in
 `kubernetes/platform/kubeflow-pipelines/source-lock.json`.
 
-The lock contains immutable registry manifest digests for all 18 unique
+The lock contains immutable registry manifest digests for all 19 locked
 container images. The renderer rejects a source checksum mismatch, an
 unlocked image, an unused image lock, a `latest` tag, and an unversioned
 source image.
@@ -45,7 +45,9 @@ The combined inventory includes:
 - 19 CustomResourceDefinitions
 - 17 Deployments
 - 23 Deployment container and init-container image occurrences
-- 18 unique container images
+- 18 unique direct Deployment images
+- 1 indirect cert-manager ACME solver image
+- 19 total immutable image locks
 
 ## Rendering model
 
@@ -245,3 +247,21 @@ The following baseline resources are outside the rollback boundary:
 - the MLflow EBS persistent volume
 - the existing ECR repositories
 - the DVC and MLflow artifact bucket
+
+## Indirect cert-manager image
+
+The cert-manager controller receives its HTTP-01 solver image through
+the `--acme-http01-solver-image` container argument. This image is not
+part of the controller Pod specification and therefore requires
+separate discovery and validation.
+
+The renderer pins that argument to the locked
+`cert-manager-acmesolver` SHA-256 digest. Rendering fails if the
+indirect image is missing from the source lock, has an invalid digest,
+or remains unused. The installation contract therefore covers:
+
+- 18 unique direct Deployment images
+- 23 direct container and init-container image occurrences
+- 1 indirect ACME solver image argument
+- 19 total immutable image locks
+- 24 total pinned image references

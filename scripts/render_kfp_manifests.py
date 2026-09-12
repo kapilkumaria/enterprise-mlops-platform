@@ -242,6 +242,82 @@ def pin_images(
     return pinned_occurrences
 
 
+
+def pin_indirect_images(
+    documents: list[dict[str, Any]],
+    resolutions: dict[str, Any],
+) -> tuple[int, set[str]]:
+    """Pin images passed through supported container arguments."""
+    argument_prefixes = (
+        "--acme-http01-solver-image=",
+    )
+    pinned_occurrences = 0
+    used_sources: set[str] = set()
+
+    for document in documents:
+        if document.get("kind") != "Deployment":
+            continue
+
+        for container in workload_containers(
+            pod_spec(document)
+        ):
+            arguments = container.get("args", [])
+
+            if not isinstance(arguments, list):
+                continue
+
+            for index, argument in enumerate(arguments):
+                if not isinstance(argument, str):
+                    continue
+
+                prefix = next(
+                    (
+                        candidate
+                        for candidate in argument_prefixes
+                        if argument.startswith(candidate)
+                    ),
+                    None,
+                )
+
+                if prefix is None:
+                    continue
+
+                source_image = argument[len(prefix):]
+
+                if source_image not in resolutions:
+                    raise ValueError(
+                        "No locked digest for indirect image "
+                        f"{source_image}"
+                    )
+
+                resolution = resolutions[source_image]
+                digest = str(
+                    resolution.get("digest", "")
+                )
+                pinned_image = str(
+                    resolution.get("pinned_image", "")
+                )
+
+                if not digest.startswith("sha256:"):
+                    raise ValueError(
+                        "Invalid locked digest for indirect "
+                        f"image {source_image}"
+                    )
+
+                if not pinned_image.endswith(f"@{digest}"):
+                    raise ValueError(
+                        "Invalid pinned indirect image for "
+                        f"{source_image}"
+                    )
+
+                arguments[index] = prefix + pinned_image
+                used_sources.add(source_image)
+                pinned_occurrences += 1
+
+    return pinned_occurrences, used_sources
+
+
+
 def validate_pinned_images(images: set[str]) -> None:
     """Require every rendered image to use a SHA-256 digest."""
     invalid = [
@@ -341,15 +417,48 @@ def render(
         {},
     )
 
-    if len(resolutions) != len(source_images):
+    direct_resolutions = {
+        image: resolutions[image]
+        for image in source_images
+        if image in resolutions
+    }
+
+    missing_direct_locks = (
+        source_images - set(direct_resolutions)
+    )
+
+    if missing_direct_locks:
         raise ValueError(
-            "Resolved image count does not match source images"
+            "Missing direct image locks: "
+            + ", ".join(sorted(missing_direct_locks))
         )
 
     pinned_occurrences = pin_images(
         all_documents,
+        direct_resolutions,
+    )
+
+    (
+        indirect_pinned_occurrences,
+        indirect_source_images,
+    ) = pin_indirect_images(
+        all_documents,
         resolutions,
     )
+
+    used_locked_images = (
+        set(direct_resolutions)
+        | indirect_source_images
+    )
+    unused_locked_images = (
+        set(resolutions) - used_locked_images
+    )
+
+    if unused_locked_images:
+        raise ValueError(
+            "Unused locked images: "
+            + ", ".join(sorted(unused_locked_images))
+        )
 
     pinned_images = collect_images(all_documents)
     validate_pinned_images(pinned_images)
@@ -367,6 +476,31 @@ def render(
         raise ValueError(
             f"Expected {expected['containers']} containers, "
             f"found {container_count}"
+        )
+
+    expected_indirect_images = expected.get(
+        "indirect_images",
+        0,
+    )
+    expected_total_locked_images = expected.get(
+        "total_locked_images",
+        expected["unique_images"],
+    )
+
+    if (
+        len(indirect_source_images)
+        != expected_indirect_images
+    ):
+        raise ValueError(
+            f"Expected {expected_indirect_images} indirect "
+            "images, found "
+            f"{len(indirect_source_images)}"
+        )
+
+    if len(resolutions) != expected_total_locked_images:
+        raise ValueError(
+            f"Expected {expected_total_locked_images} total "
+            f"locked images, found {len(resolutions)}"
         )
 
     if len(source_images) != expected["unique_images"]:
@@ -443,6 +577,17 @@ def render(
         "unique_images": len(pinned_images),
         "images": sorted(pinned_images),
         "image_references_pinned": pinned_occurrences,
+        "indirect_image_references_pinned": (
+            indirect_pinned_occurrences
+        ),
+        "total_image_references_pinned": (
+            pinned_occurrences
+            + indirect_pinned_occurrences
+        ),
+        "indirect_source_images": sorted(
+            indirect_source_images
+        ),
+        "total_locked_images": len(resolutions),
         "all_images_digest_pinned": True,
         "cluster_resources_modified": (
             original["kfp-cluster"] != cluster

@@ -258,3 +258,67 @@ def test_non_digest_rendered_image_is_rejected() -> None:
         renderer.validate_pinned_images(
             {"example.invalid/controller:1.0"}
         )
+
+def test_acme_solver_argument_is_digest_pinned() -> None:
+    """The cert-manager ACME solver argument must be immutable."""
+    renderer = load_renderer()
+    source_image = (
+        "quay.io/jetstack/"
+        "cert-manager-acmesolver:v1.18.2"
+    )
+    pinned_image = (
+        "quay.io/jetstack/"
+        "cert-manager-acmesolver@sha256:"
+        + "c" * 64
+    )
+    document = deployment()
+    container = document["spec"]["template"]["spec"][
+        "containers"
+    ][0]
+    container["args"] = [
+        "--v=2",
+        "--acme-http01-solver-image=" + source_image,
+    ]
+    resolutions = {
+        source_image: {
+            "digest": "sha256:" + "c" * 64,
+            "pinned_image": pinned_image,
+        }
+    }
+
+    count, used_sources = (
+        renderer.pin_indirect_images(
+            [document],
+            resolutions,
+        )
+    )
+
+    assert count == 1
+    assert used_sources == {source_image}
+    assert container["args"] == [
+        "--v=2",
+        "--acme-http01-solver-image="
+        + pinned_image,
+    ]
+
+
+def test_missing_acme_solver_lock_is_rejected() -> None:
+    """An unlocked indirect ACME solver must stop rendering."""
+    renderer = load_renderer()
+    document = deployment()
+    container = document["spec"]["template"]["spec"][
+        "containers"
+    ][0]
+    container["args"] = [
+        "--acme-http01-solver-image="
+        "example.invalid/acmesolver:1.0",
+    ]
+
+    with pytest.raises(
+        ValueError,
+        match="No locked digest for indirect image",
+    ):
+        renderer.pin_indirect_images(
+            [document],
+            {},
+        )
