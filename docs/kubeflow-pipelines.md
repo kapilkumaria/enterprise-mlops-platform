@@ -303,5 +303,24 @@ The immutable upstream inventory remains 143 checksum-verified
 documents. Rendering adds three repository-managed compatibility
 objects, producing 146 total documents and 81 KFP platform documents.
 The renderer continues to validate 17 Deployments, 23 direct image
-occurrences, 18 direct images, one indirect image, and 19 immutable
-image locks.
+occurrences, and 18 direct images.
+
+## Generated runtime image pinning
+
+KFP creates support containers dynamically for each v2 pipeline run.
+These images do not appear in ordinary Deployment `image` fields.
+Instead, they are supplied through three repository-controlled fields:
+
+- `V2_DRIVER_IMAGE` in `Deployment/ml-pipeline`
+- `V2_LAUNCHER_IMAGE` in `Deployment/ml-pipeline`
+- `--executor-image` in `Deployment/workflow-controller`
+
+The renderer pins the KFP driver, KFP launcher, and Argo executor values
+to audited SHA-256 digests. Together with the cert-manager ACME solver,
+the installation contains four indirect images, 22 total immutable
+image locks, and 27 pinned source occurrences.
+
+Rendering fails if a supported runtime image lacks a lock, has an
+invalid digest mapping, or leaves an unused lock. The immutable image
+contract therefore covers control-plane Deployments, init containers,
+cert-manager solver Pods, and KFP-generated pipeline support Pods.

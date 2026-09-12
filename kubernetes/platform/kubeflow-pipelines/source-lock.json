@@ -22,8 +22,8 @@
     "deployments": 17,
     "direct_workload_images": 18,
     "documents": 143,
-    "indirect_images": 1,
-    "total_locked_images": 19,
+    "indirect_images": 4,
+    "total_locked_images": 22,
     "unique_images": 18
   },
   "image_policy": {
@@ -59,9 +59,17 @@
         "digest": "sha256:066ae1cbb26db5b05ea5ddddecfbf41d37dbe77a700bb6d6b3222a76426099fb",
         "pinned_image": "ghcr.io/kubeflow/kfp-cache-server@sha256:066ae1cbb26db5b05ea5ddddecfbf41d37dbe77a700bb6d6b3222a76426099fb"
       },
+      "ghcr.io/kubeflow/kfp-driver:2.17.0": {
+        "digest": "sha256:887c1f6a730df9992bae1f57b7ddf509491c75fb94d03bb9a7865384ce6cde43",
+        "pinned_image": "ghcr.io/kubeflow/kfp-driver@sha256:887c1f6a730df9992bae1f57b7ddf509491c75fb94d03bb9a7865384ce6cde43"
+      },
       "ghcr.io/kubeflow/kfp-frontend:2.17.0": {
         "digest": "sha256:d28a5d7e15d23e68cdd0fc6099062b2910548e756465dcc0481203094dfef695",
         "pinned_image": "ghcr.io/kubeflow/kfp-frontend@sha256:d28a5d7e15d23e68cdd0fc6099062b2910548e756465dcc0481203094dfef695"
+      },
+      "ghcr.io/kubeflow/kfp-launcher:2.17.0": {
+        "digest": "sha256:9b5e9e4df0677f348d288334d49807c82c6d82bcdf99d6217bcbe75f684cda7f",
+        "pinned_image": "ghcr.io/kubeflow/kfp-launcher@sha256:9b5e9e4df0677f348d288334d49807c82c6d82bcdf99d6217bcbe75f684cda7f"
       },
       "ghcr.io/kubeflow/kfp-metadata-envoy:2.17.0": {
         "digest": "sha256:f1616d708abd8074894472df787a7b6d2bab80aa228e3bd97e2c63e104d74947",
@@ -90,6 +98,10 @@
       "mysql:8.4": {
         "digest": "sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26",
         "pinned_image": "mysql@sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26"
+      },
+      "quay.io/argoproj/argoexec:v4.0.5": {
+        "digest": "sha256:0cb732e24c7d13385066c920e2943fdddfa1d15e6bf5ad99f02e48c50625d022",
+        "pinned_image": "quay.io/argoproj/argoexec@sha256:0cb732e24c7d13385066c920e2943fdddfa1d15e6bf5ad99f02e48c50625d022"
       },
       "quay.io/argoproj/workflow-controller:v4.0.5": {
         "digest": "sha256:4001b58f3c34bb65015c79919157e45f51f4d7450806c64987abdb7dc86f8453",

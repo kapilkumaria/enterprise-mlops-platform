@@ -219,10 +219,36 @@ def pin_indirect_images(
     documents: list[dict[str, Any]],
     resolutions: dict[str, Any],
 ) -> tuple[int, set[str]]:
-    """Pin images passed through supported container arguments."""
+    """Pin images injected through approved runtime fields."""
     argument_prefixes = ("--acme-http01-solver-image=",)
-    pinned_occurrences = 0
+    positional_arguments = {
+        "--executor-image",
+    }
+    environment_names = {
+        "V2_DRIVER_IMAGE",
+        "V2_LAUNCHER_IMAGE",
+    }
+
+    occurrences = 0
     used_sources: set[str] = set()
+
+    def pin(source_image: str) -> str:
+        """Validate and return one locked indirect image."""
+        if source_image not in resolutions:
+            raise ValueError(f"No locked digest for indirect image {source_image}")
+
+        resolution = resolutions[source_image]
+        digest = str(resolution.get("digest", ""))
+        pinned_image = str(resolution.get("pinned_image", ""))
+
+        if not digest.startswith("sha256:"):
+            raise ValueError(f"Invalid locked digest for indirect image {source_image}")
+
+        if not pinned_image.endswith(f"@{digest}"):
+            raise ValueError(f"Invalid pinned indirect image for {source_image}")
+
+        used_sources.add(source_image)
+        return pinned_image
 
     for document in documents:
         if document.get("kind") != "Deployment":
@@ -231,51 +257,71 @@ def pin_indirect_images(
         for container in workload_containers(pod_spec(document)):
             arguments = container.get("args", [])
 
-            if not isinstance(arguments, list):
+            if isinstance(arguments, list):
+                for index, argument in enumerate(arguments):
+                    if not isinstance(argument, str):
+                        continue
+
+                    prefix = next(
+                        (
+                            candidate
+                            for candidate in argument_prefixes
+                            if argument.startswith(candidate)
+                        ),
+                        None,
+                    )
+
+                    if prefix is not None:
+                        source_image = argument[len(prefix) :]
+                        arguments[index] = prefix + pin(source_image)
+                        occurrences += 1
+                        continue
+
+                    if argument not in positional_arguments:
+                        continue
+
+                    value_index = index + 1
+
+                    if value_index >= len(arguments):
+                        raise ValueError(
+                            f"Indirect image argument {argument} has no value"
+                        )
+
+                    source_image = arguments[value_index]
+
+                    if not isinstance(source_image, str):
+                        raise ValueError(
+                            f"Indirect image argument {argument} has a non-string value"
+                        )
+
+                    arguments[value_index] = pin(source_image)
+                    occurrences += 1
+
+            environment = container.get("env", [])
+
+            if not isinstance(environment, list):
                 continue
 
-            for index, argument in enumerate(arguments):
-                if not isinstance(argument, str):
+            for variable in environment:
+                if not isinstance(variable, dict):
                     continue
 
-                prefix = next(
-                    (
-                        candidate
-                        for candidate in argument_prefixes
-                        if argument.startswith(candidate)
-                    ),
-                    None,
-                )
+                name = variable.get("name")
 
-                if prefix is None:
+                if name not in environment_names:
                     continue
 
-                source_image = argument[len(prefix) :]
+                source_image = variable.get("value")
 
-                if source_image not in resolutions:
+                if not isinstance(source_image, str):
                     raise ValueError(
-                        f"No locked digest for indirect image {source_image}"
+                        f"Indirect image environment {name} has no string value"
                     )
 
-                resolution = resolutions[source_image]
-                digest = str(resolution.get("digest", ""))
-                pinned_image = str(resolution.get("pinned_image", ""))
+                variable["value"] = pin(source_image)
+                occurrences += 1
 
-                if not digest.startswith("sha256:"):
-                    raise ValueError(
-                        f"Invalid locked digest for indirect image {source_image}"
-                    )
-
-                if not pinned_image.endswith(f"@{digest}"):
-                    raise ValueError(
-                        f"Invalid pinned indirect image for {source_image}"
-                    )
-
-                arguments[index] = prefix + pinned_image
-                used_sources.add(source_image)
-                pinned_occurrences += 1
-
-    return pinned_occurrences, used_sources
+    return occurrences, used_sources
 
 
 def apply_storage_compatibility(

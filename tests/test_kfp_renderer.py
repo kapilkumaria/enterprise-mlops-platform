@@ -577,3 +577,143 @@ def test_conflicting_cache_tls_projection_is_rejected() -> None:
             [document],
             policy,
         )
+
+
+def test_runtime_environment_images_are_digest_pinned() -> None:
+    """KFP driver and launcher values must be immutable."""
+    renderer = load_renderer()
+    document = deployment()
+    container = document["spec"]["template"]["spec"]["containers"][0]
+
+    driver_source = "ghcr.io/kubeflow/kfp-driver:2.17.0"
+    launcher_source = "ghcr.io/kubeflow/kfp-launcher:2.17.0"
+    driver_pinned = "ghcr.io/kubeflow/kfp-driver@sha256:" + "d" * 64
+    launcher_pinned = "ghcr.io/kubeflow/kfp-launcher@sha256:" + "e" * 64
+
+    container["env"] = [
+        {
+            "name": "V2_DRIVER_IMAGE",
+            "value": driver_source,
+        },
+        {
+            "name": "V2_LAUNCHER_IMAGE",
+            "value": launcher_source,
+        },
+    ]
+
+    resolutions = {
+        driver_source: {
+            "digest": "sha256:" + "d" * 64,
+            "pinned_image": driver_pinned,
+        },
+        launcher_source: {
+            "digest": "sha256:" + "e" * 64,
+            "pinned_image": launcher_pinned,
+        },
+    }
+
+    count, used_sources = renderer.pin_indirect_images(
+        [document],
+        resolutions,
+    )
+
+    assert count == 2
+    assert used_sources == {
+        driver_source,
+        launcher_source,
+    }
+    assert container["env"] == [
+        {
+            "name": "V2_DRIVER_IMAGE",
+            "value": driver_pinned,
+        },
+        {
+            "name": "V2_LAUNCHER_IMAGE",
+            "value": launcher_pinned,
+        },
+    ]
+
+
+def test_argo_executor_argument_is_digest_pinned() -> None:
+    """The positional Argo executor must be immutable."""
+    renderer = load_renderer()
+    document = deployment()
+    container = document["spec"]["template"]["spec"]["containers"][0]
+
+    source_image = "quay.io/argoproj/argoexec:v4.0.5"
+    pinned_image = "quay.io/argoproj/argoexec@sha256:" + "f" * 64
+
+    container["args"] = [
+        "--configmap",
+        "workflow-controller-configmap",
+        "--executor-image",
+        source_image,
+        "--namespaced",
+    ]
+
+    resolutions = {
+        source_image: {
+            "digest": "sha256:" + "f" * 64,
+            "pinned_image": pinned_image,
+        },
+    }
+
+    count, used_sources = renderer.pin_indirect_images(
+        [document],
+        resolutions,
+    )
+
+    assert count == 1
+    assert used_sources == {source_image}
+    assert container["args"] == [
+        "--configmap",
+        "workflow-controller-configmap",
+        "--executor-image",
+        pinned_image,
+        "--namespaced",
+    ]
+
+
+def test_missing_runtime_environment_lock_is_rejected() -> None:
+    """An unlocked KFP runtime image must stop rendering."""
+    renderer = load_renderer()
+    document = deployment()
+    container = document["spec"]["template"]["spec"]["containers"][0]
+
+    container["env"] = [
+        {
+            "name": "V2_DRIVER_IMAGE",
+            "value": "example.invalid/kfp-driver:1.0",
+        },
+    ]
+
+    with pytest.raises(
+        ValueError,
+        match="No locked digest for indirect image",
+    ):
+        renderer.pin_indirect_images(
+            [document],
+            {},
+        )
+
+
+def test_missing_executor_image_value_is_rejected() -> None:
+    """An incomplete executor argument must fail closed."""
+    renderer = load_renderer()
+    document = deployment()
+    container = document["spec"]["template"]["spec"]["containers"][0]
+
+    container["args"] = [
+        "--configmap",
+        "workflow-controller-configmap",
+        "--executor-image",
+    ]
+
+    with pytest.raises(
+        ValueError,
+        match="has no value",
+    ):
+        renderer.pin_indirect_images(
+            [document],
+            {},
+        )
