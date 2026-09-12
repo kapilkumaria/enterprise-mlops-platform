@@ -31,3 +31,18 @@ Live validation confirmed:
 - predictor Pod Ready
 - named-feature prediction succeeded
 - no public endpoint was created
+
+## Validation evidence
+
+KServe v0.20.0 Standard/RawDeployment mode was validated on the
+`kserve` namespace using the `churn-model` InferenceService.
+
+The predictor successfully downloaded the model from the private S3
+artifact path through EKS Pod Identity. The predictor Pod became Ready,
+and a named-feature request returned a successful prediction.
+
+All runtime images are pinned by SHA-256 digest. Knative, Istio, public
+ingress, and GPU workloads were not installed.
+
+The sanitized validation record is available at
+[`docs/evidence/kserve-validation.json`](evidence/kserve-validation.json).
