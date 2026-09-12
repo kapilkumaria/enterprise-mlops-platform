@@ -265,3 +265,37 @@ or remains unused. The installation contract therefore covers:
 - 1 indirect ACME solver image argument
 - 19 total immutable image locks
 - 24 total pinned image references
+
+## EKS runtime compatibility overlay
+
+The pinned Kubeflow Pipelines 2.17.0 manifests require two additive
+compatibility changes for this EKS environment.
+
+The upstream MySQL and SeaweedFS claims omit `storageClassName`. Because
+the cluster intentionally has no global default StorageClass, the
+renderer assigns the existing `ebs-gp3` CSI StorageClass to exactly
+`mysql-pv-claim` and `seaweedfs-pvc`. Existing conflicting values are
+rejected rather than overwritten.
+
+The upstream cache deployer uses the
+`kubernetes.io/kubelet-serving` signer to request the cache-server TLS
+certificate. EKS does not sign that workload CSR. The renderer therefore
+scales the legacy cache deployer to zero and adds the official
+cert-manager-style cache TLS contract:
+
+- `Issuer/kfp-cache-selfsigned-issuer`
+- `Certificate/kfp-cache-cert`
+- Secret target `webhook-server-tls`
+- `MutatingWebhookConfiguration/cache-webhook-kubeflow`
+
+The cache certificate is restricted to cache-server DNS identities and
+is not shared with the separate KFP API webhook certificate. The cache
+webhook uses `failurePolicy: Ignore` and selects only Pods explicitly
+labelled with `pipelines.kubeflow.org/cache_enabled: "true"`.
+
+The immutable upstream inventory remains 143 checksum-verified
+documents. Rendering adds three repository-managed compatibility
+objects, producing 146 total documents and 81 KFP platform documents.
+The renderer continues to validate 17 Deployments, 23 direct image
+occurrences, 18 direct images, one indirect image, and 19 immutable
+image locks.

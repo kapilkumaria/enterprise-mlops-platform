@@ -35,6 +35,33 @@
     "expected_unique_images": 18,
     "required_preserved_node_selector": {
       "kubernetes.io/os": "linux"
+    },
+    "expected_upstream_documents": 143,
+    "expected_rendered_documents": 146,
+    "expected_platform_documents": 81,
+    "expected_pvc_storage_classes_added": 2,
+    "expected_compatibility_objects_added": 3
+  },
+  "platform_compatibility": {
+    "storage": {
+      "preserve_existing_values": true,
+      "storage_class_name": "ebs-gp3",
+      "target_pvcs": [
+        "mysql-pv-claim",
+        "seaweedfs-pvc"
+      ]
+    },
+    "cache_tls": {
+      "cache_deployer_name": "cache-deployer-deployment",
+      "cache_deployer_replicas": 0,
+      "certificate_name": "kfp-cache-cert",
+      "disable_legacy_cache_deployer": true,
+      "issuer_name": "kfp-cache-selfsigned-issuer",
+      "namespace": "kubeflow",
+      "secret_name": "webhook-server-tls",
+      "service_name": "cache-server",
+      "webhook_failure_policy": "Ignore",
+      "webhook_name": "cache-webhook-kubeflow"
     }
   }
 }

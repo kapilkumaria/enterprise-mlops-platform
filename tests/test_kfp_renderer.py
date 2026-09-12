@@ -87,20 +87,14 @@ def test_hardening_is_additive() -> None:
     renderer = load_renderer()
     document = deployment()
 
-    container_count, added_fields = (
-        renderer.harden_deployment(
-            document,
-            hardening_policy(),
-        )
+    container_count, added_fields = renderer.harden_deployment(
+        document,
+        hardening_policy(),
     )
 
-    pod_specification = (
-        document["spec"]["template"]["spec"]
-    )
+    pod_specification = document["spec"]["template"]["spec"]
     selector = pod_specification["nodeSelector"]
-    resources = pod_specification["containers"][0][
-        "resources"
-    ]
+    resources = pod_specification["containers"][0]["resources"]
 
     assert container_count == 1
     assert added_fields == 3
@@ -126,9 +120,7 @@ def test_conflicting_selector_is_rejected() -> None:
     renderer = load_renderer()
     document = deployment()
 
-    document["spec"]["template"]["spec"][
-        "nodeSelector"
-    ]["role"] = "system"
+    document["spec"]["template"]["spec"]["nodeSelector"]["role"] = "system"
 
     with pytest.raises(
         ValueError,
@@ -144,11 +136,7 @@ def test_all_image_occurrences_are_pinned() -> None:
     """Repeated source images must all become immutable."""
     renderer = load_renderer()
     source_image = "example.invalid/controller:1.0"
-    pinned_image = (
-        "example.invalid/controller@"
-        "sha256:"
-        + "a" * 64
-    )
+    pinned_image = "example.invalid/controller@sha256:" + "a" * 64
 
     first = deployment(source_image)
     second = deployment(source_image)
@@ -166,9 +154,7 @@ def test_all_image_occurrences_are_pinned() -> None:
         resolutions,
     )
 
-    images = renderer.collect_images(
-        [first, second]
-    )
+    images = renderer.collect_images([first, second])
 
     assert count == 2
     assert images == {pinned_image}
@@ -196,11 +182,7 @@ def test_unused_digest_lock_is_rejected() -> None:
     resolutions = {
         source_image: {
             "digest": "sha256:" + "a" * 64,
-            "pinned_image": (
-                "example.invalid/controller@"
-                "sha256:"
-                + "a" * 64
-            ),
+            "pinned_image": ("example.invalid/controller@sha256:" + "a" * 64),
         },
         "example.invalid/unused:1.0": {
             "digest": "sha256:" + "b" * 64,
@@ -208,12 +190,8 @@ def test_unused_digest_lock_is_rejected() -> None:
         },
     }
 
-    resolutions["example.invalid/unused:1.0"][
-        "pinned_image"
-    ] = (
-        "example.invalid/unused@"
-        "sha256:"
-        + "b" * 64
+    resolutions["example.invalid/unused:1.0"]["pinned_image"] = (
+        "example.invalid/unused@sha256:" + "b" * 64
     )
 
     with pytest.raises(
@@ -234,17 +212,13 @@ def test_latest_and_unversioned_images_are_rejected() -> None:
         ValueError,
         match="Latest image is prohibited",
     ):
-        renderer.validate_images(
-            {"example.invalid/controller:latest"}
-        )
+        renderer.validate_images({"example.invalid/controller:latest"})
 
     with pytest.raises(
         ValueError,
         match="Unversioned image is prohibited",
     ):
-        renderer.validate_images(
-            {"example.invalid/controller"}
-        )
+        renderer.validate_images({"example.invalid/controller"})
 
 
 def test_non_digest_rendered_image_is_rejected() -> None:
@@ -255,26 +229,16 @@ def test_non_digest_rendered_image_is_rejected() -> None:
         ValueError,
         match="not digest pinned",
     ):
-        renderer.validate_pinned_images(
-            {"example.invalid/controller:1.0"}
-        )
+        renderer.validate_pinned_images({"example.invalid/controller:1.0"})
+
 
 def test_acme_solver_argument_is_digest_pinned() -> None:
     """The cert-manager ACME solver argument must be immutable."""
     renderer = load_renderer()
-    source_image = (
-        "quay.io/jetstack/"
-        "cert-manager-acmesolver:v1.18.2"
-    )
-    pinned_image = (
-        "quay.io/jetstack/"
-        "cert-manager-acmesolver@sha256:"
-        + "c" * 64
-    )
+    source_image = "quay.io/jetstack/cert-manager-acmesolver:v1.18.2"
+    pinned_image = "quay.io/jetstack/cert-manager-acmesolver@sha256:" + "c" * 64
     document = deployment()
-    container = document["spec"]["template"]["spec"][
-        "containers"
-    ][0]
+    container = document["spec"]["template"]["spec"]["containers"][0]
     container["args"] = [
         "--v=2",
         "--acme-http01-solver-image=" + source_image,
@@ -286,19 +250,16 @@ def test_acme_solver_argument_is_digest_pinned() -> None:
         }
     }
 
-    count, used_sources = (
-        renderer.pin_indirect_images(
-            [document],
-            resolutions,
-        )
+    count, used_sources = renderer.pin_indirect_images(
+        [document],
+        resolutions,
     )
 
     assert count == 1
     assert used_sources == {source_image}
     assert container["args"] == [
         "--v=2",
-        "--acme-http01-solver-image="
-        + pinned_image,
+        "--acme-http01-solver-image=" + pinned_image,
     ]
 
 
@@ -306,12 +267,9 @@ def test_missing_acme_solver_lock_is_rejected() -> None:
     """An unlocked indirect ACME solver must stop rendering."""
     renderer = load_renderer()
     document = deployment()
-    container = document["spec"]["template"]["spec"][
-        "containers"
-    ][0]
+    container = document["spec"]["template"]["spec"]["containers"][0]
     container["args"] = [
-        "--acme-http01-solver-image="
-        "example.invalid/acmesolver:1.0",
+        "--acme-http01-solver-image=example.invalid/acmesolver:1.0",
     ]
 
     with pytest.raises(
@@ -321,4 +279,203 @@ def test_missing_acme_solver_lock_is_rejected() -> None:
         renderer.pin_indirect_images(
             [document],
             {},
+        )
+
+
+def compatibility_policy() -> dict:
+    """Return the deterministic platform compatibility policy."""
+    return {
+        "platform_compatibility": {
+            "storage": {
+                "preserve_existing_values": True,
+                "storage_class_name": "ebs-gp3",
+                "target_pvcs": [
+                    "mysql-pv-claim",
+                    "seaweedfs-pvc",
+                ],
+            },
+            "cache_tls": {
+                "cache_deployer_name": "cache-deployer-deployment",
+                "cache_deployer_replicas": 0,
+                "certificate_name": "kfp-cache-cert",
+                "disable_legacy_cache_deployer": True,
+                "issuer_name": "kfp-cache-selfsigned-issuer",
+                "namespace": "kubeflow",
+                "secret_name": "webhook-server-tls",
+                "service_name": "cache-server",
+                "webhook_failure_policy": "Ignore",
+                "webhook_name": "cache-webhook-kubeflow",
+            },
+        },
+    }
+
+
+def persistent_volume_claim(name: str) -> dict:
+    """Build a representative KFP PVC."""
+    return {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "metadata": {
+            "name": name,
+            "namespace": "kubeflow",
+        },
+        "spec": {
+            "accessModes": ["ReadWriteOnce"],
+            "resources": {
+                "requests": {
+                    "storage": "20Gi",
+                },
+            },
+        },
+    }
+
+
+def test_storage_compatibility_adds_explicit_class() -> None:
+    """Both approved PVCs must receive ebs-gp3."""
+    renderer = load_renderer()
+    claims = [
+        persistent_volume_claim("mysql-pv-claim"),
+        persistent_volume_claim("seaweedfs-pvc"),
+    ]
+
+    added = renderer.apply_storage_compatibility(
+        claims,
+        compatibility_policy(),
+    )
+
+    assert added == 2
+    assert {
+        claim["metadata"]["name"]: claim["spec"]["storageClassName"] for claim in claims
+    } == {
+        "mysql-pv-claim": "ebs-gp3",
+        "seaweedfs-pvc": "ebs-gp3",
+    }
+
+
+def test_conflicting_storage_class_is_rejected() -> None:
+    """A conflicting PVC class must fail closed."""
+    renderer = load_renderer()
+    claims = [
+        persistent_volume_claim("mysql-pv-claim"),
+        persistent_volume_claim("seaweedfs-pvc"),
+    ]
+    claims[0]["spec"]["storageClassName"] = "gp2"
+
+    with pytest.raises(
+        ValueError,
+        match="Conflicting storage class",
+    ):
+        renderer.apply_storage_compatibility(
+            claims,
+            compatibility_policy(),
+        )
+
+
+def test_missing_storage_claim_is_rejected() -> None:
+    """Every policy-selected PVC must exist."""
+    renderer = load_renderer()
+
+    with pytest.raises(
+        ValueError,
+        match="Missing compatibility PVCs",
+    ):
+        renderer.apply_storage_compatibility(
+            [persistent_volume_claim("mysql-pv-claim")],
+            compatibility_policy(),
+        )
+
+
+def test_cache_tls_compatibility_is_declarative() -> None:
+    """Legacy CSR bootstrap must become declarative TLS."""
+    renderer = load_renderer()
+    cache_deployer = deployment()
+    cache_deployer["metadata"]["name"] = "cache-deployer-deployment"
+    documents = [cache_deployer]
+
+    disabled, added = renderer.apply_cache_tls_compatibility(
+        documents,
+        compatibility_policy(),
+    )
+
+    assert disabled is True
+    assert added == 3
+    assert cache_deployer["spec"]["replicas"] == 0
+
+    identities = {
+        (
+            document["kind"],
+            document["metadata"]["name"],
+        )
+        for document in documents
+    }
+
+    assert (
+        "Issuer",
+        "kfp-cache-selfsigned-issuer",
+    ) in identities
+    assert (
+        "Certificate",
+        "kfp-cache-cert",
+    ) in identities
+    assert (
+        "MutatingWebhookConfiguration",
+        "cache-webhook-kubeflow",
+    ) in identities
+
+    certificate = next(
+        document for document in documents if document["kind"] == "Certificate"
+    )
+
+    assert certificate["spec"]["secretName"] == ("webhook-server-tls")
+    assert certificate["spec"]["dnsNames"] == [
+        "cache-server",
+        "cache-server.kubeflow",
+        "cache-server.kubeflow.svc",
+        "cache-server.kubeflow.svc.cluster.local",
+    ]
+
+    webhook = next(
+        document
+        for document in documents
+        if document["kind"] == "MutatingWebhookConfiguration"
+    )
+    webhook_specification = webhook["webhooks"][0]
+
+    assert webhook["metadata"]["annotations"] == {
+        "cert-manager.io/inject-ca-from": "kubeflow/kfp-cache-cert",
+    }
+    assert webhook_specification["failurePolicy"] == "Ignore"
+    assert webhook_specification["admissionReviewVersions"] == ["v1"]
+    assert webhook_specification["clientConfig"]["service"] == {
+        "name": "cache-server",
+        "namespace": "kubeflow",
+        "path": "/mutate",
+        "port": 443,
+    }
+
+
+def test_existing_cache_tls_object_is_rejected() -> None:
+    """Duplicate compatibility identities must fail."""
+    renderer = load_renderer()
+    cache_deployer = deployment()
+    cache_deployer["metadata"]["name"] = "cache-deployer-deployment"
+    existing_issuer = {
+        "apiVersion": "cert-manager.io/v1",
+        "kind": "Issuer",
+        "metadata": {
+            "name": "kfp-cache-selfsigned-issuer",
+            "namespace": "kubeflow",
+        },
+        "spec": {
+            "selfSigned": {},
+        },
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="Compatibility objects already exist",
+    ):
+        renderer.apply_cache_tls_compatibility(
+            [cache_deployer, existing_issuer],
+            compatibility_policy(),
         )

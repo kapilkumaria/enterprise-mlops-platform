@@ -43,8 +43,7 @@ def verify_source(
 
     if actual != expected:
         raise ValueError(
-            f"Checksum mismatch for {path}: "
-            f"expected {expected}, found {actual}"
+            f"Checksum mismatch for {path}: expected {expected}, found {actual}"
         )
 
 
@@ -52,16 +51,12 @@ def read_documents(path: Path) -> list[dict[str, Any]]:
     """Read all Kubernetes objects from a YAML stream."""
     documents = []
 
-    for document in yaml.safe_load_all(
-        path.read_text(encoding="utf-8")
-    ):
+    for document in yaml.safe_load_all(path.read_text(encoding="utf-8")):
         if document is None:
             continue
 
         if not isinstance(document, dict):
-            raise ValueError(
-                f"Non-object YAML document found in {path}"
-            )
+            raise ValueError(f"Non-object YAML document found in {path}")
 
         documents.append(document)
 
@@ -86,8 +81,7 @@ def write_documents(
 def pod_spec(document: dict[str, Any]) -> dict[str, Any]:
     """Return the pod specification for a workload."""
     return (
-        document
-        .setdefault("spec", {})
+        document.setdefault("spec", {})
         .setdefault("template", {})
         .setdefault("spec", {})
     )
@@ -124,9 +118,7 @@ def harden_deployment(
         existing = node_selector.get(key)
 
         if existing is not None and existing != value:
-            raise ValueError(
-                f"Conflicting node selector {key}={existing}"
-            )
+            raise ValueError(f"Conflicting node selector {key}={existing}")
 
         node_selector[key] = value
 
@@ -159,9 +151,7 @@ def collect_images(
         if document.get("kind") != "Deployment":
             continue
 
-        for container in workload_containers(
-            pod_spec(document)
-        ):
+        for container in workload_containers(pod_spec(document)):
             image = container.get("image")
 
             if image:
@@ -179,9 +169,7 @@ def validate_images(images: set[str]) -> None:
             raise ValueError(f"Latest image is prohibited: {image}")
 
         if ":" not in final_segment and "@sha256:" not in image:
-            raise ValueError(
-                f"Unversioned image is prohibited: {image}"
-            )
+            raise ValueError(f"Unversioned image is prohibited: {image}")
 
 
 def pin_images(
@@ -196,36 +184,24 @@ def pin_images(
         if document.get("kind") != "Deployment":
             continue
 
-        for container in workload_containers(
-            pod_spec(document)
-        ):
+        for container in workload_containers(pod_spec(document)):
             source_image = str(container.get("image", ""))
 
             if not source_image:
-                raise ValueError(
-                    "Deployment container has no image"
-                )
+                raise ValueError("Deployment container has no image")
 
             if source_image not in resolutions:
-                raise ValueError(
-                    f"No locked digest for {source_image}"
-                )
+                raise ValueError(f"No locked digest for {source_image}")
 
             resolution = resolutions[source_image]
-            pinned_image = str(
-                resolution.get("pinned_image", "")
-            )
+            pinned_image = str(resolution.get("pinned_image", ""))
             digest = str(resolution.get("digest", ""))
 
             if not digest.startswith("sha256:"):
-                raise ValueError(
-                    f"Invalid locked digest for {source_image}"
-                )
+                raise ValueError(f"Invalid locked digest for {source_image}")
 
             if not pinned_image.endswith(f"@{digest}"):
-                raise ValueError(
-                    f"Invalid pinned image for {source_image}"
-                )
+                raise ValueError(f"Invalid pinned image for {source_image}")
 
             container["image"] = pinned_image
             used_sources.add(source_image)
@@ -234,13 +210,9 @@ def pin_images(
     unused_sources = set(resolutions) - used_sources
 
     if unused_sources:
-        raise ValueError(
-            "Unused locked images: "
-            + ", ".join(sorted(unused_sources))
-        )
+        raise ValueError("Unused locked images: " + ", ".join(sorted(unused_sources)))
 
     return pinned_occurrences
-
 
 
 def pin_indirect_images(
@@ -248,9 +220,7 @@ def pin_indirect_images(
     resolutions: dict[str, Any],
 ) -> tuple[int, set[str]]:
     """Pin images passed through supported container arguments."""
-    argument_prefixes = (
-        "--acme-http01-solver-image=",
-    )
+    argument_prefixes = ("--acme-http01-solver-image=",)
     pinned_occurrences = 0
     used_sources: set[str] = set()
 
@@ -258,9 +228,7 @@ def pin_indirect_images(
         if document.get("kind") != "Deployment":
             continue
 
-        for container in workload_containers(
-            pod_spec(document)
-        ):
+        for container in workload_containers(pod_spec(document)):
             arguments = container.get("args", [])
 
             if not isinstance(arguments, list):
@@ -282,32 +250,25 @@ def pin_indirect_images(
                 if prefix is None:
                     continue
 
-                source_image = argument[len(prefix):]
+                source_image = argument[len(prefix) :]
 
                 if source_image not in resolutions:
                     raise ValueError(
-                        "No locked digest for indirect image "
-                        f"{source_image}"
+                        f"No locked digest for indirect image {source_image}"
                     )
 
                 resolution = resolutions[source_image]
-                digest = str(
-                    resolution.get("digest", "")
-                )
-                pinned_image = str(
-                    resolution.get("pinned_image", "")
-                )
+                digest = str(resolution.get("digest", ""))
+                pinned_image = str(resolution.get("pinned_image", ""))
 
                 if not digest.startswith("sha256:"):
                     raise ValueError(
-                        "Invalid locked digest for indirect "
-                        f"image {source_image}"
+                        f"Invalid locked digest for indirect image {source_image}"
                     )
 
                 if not pinned_image.endswith(f"@{digest}"):
                     raise ValueError(
-                        "Invalid pinned indirect image for "
-                        f"{source_image}"
+                        f"Invalid pinned indirect image for {source_image}"
                     )
 
                 arguments[index] = prefix + pinned_image
@@ -316,6 +277,203 @@ def pin_indirect_images(
 
     return pinned_occurrences, used_sources
 
+
+def apply_storage_compatibility(
+    documents: list[dict[str, Any]],
+    policy: dict[str, Any],
+) -> int:
+    """Set explicit storage classes on approved PVCs."""
+    storage = policy["platform_compatibility"]["storage"]
+    storage_class_name = str(storage["storage_class_name"])
+    target_names = set(storage["target_pvcs"])
+    preserve_existing = bool(storage.get("preserve_existing_values", True))
+
+    claims = {
+        str(document.get("metadata", {}).get("name", "")): document
+        for document in documents
+        if document.get("kind") == "PersistentVolumeClaim"
+    }
+
+    missing_claims = target_names - set(claims)
+
+    if missing_claims:
+        raise ValueError(
+            "Missing compatibility PVCs: " + ", ".join(sorted(missing_claims))
+        )
+
+    added = 0
+
+    for name in sorted(target_names):
+        claim = claims[name]
+        specification = claim.setdefault("spec", {})
+        existing = specification.get("storageClassName")
+
+        if existing is None:
+            specification["storageClassName"] = storage_class_name
+            added += 1
+            continue
+
+        if existing != storage_class_name:
+            preservation = (
+                " while preserving existing values" if preserve_existing else ""
+            )
+            raise ValueError(
+                f"Conflicting storage class on PVC {name}: {existing}{preservation}"
+            )
+
+    return added
+
+
+def build_cache_tls_objects(
+    policy: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Build the repository-managed cache TLS objects."""
+    cache = policy["platform_compatibility"]["cache_tls"]
+    namespace = str(cache["namespace"])
+    issuer_name = str(cache["issuer_name"])
+    certificate_name = str(cache["certificate_name"])
+    secret_name = str(cache["secret_name"])
+    service_name = str(cache["service_name"])
+    webhook_name = str(cache["webhook_name"])
+
+    return [
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Issuer",
+            "metadata": {
+                "name": issuer_name,
+                "namespace": namespace,
+            },
+            "spec": {
+                "selfSigned": {},
+            },
+        },
+        {
+            "apiVersion": "cert-manager.io/v1",
+            "kind": "Certificate",
+            "metadata": {
+                "name": certificate_name,
+                "namespace": namespace,
+            },
+            "spec": {
+                "commonName": certificate_name,
+                "isCA": True,
+                "dnsNames": [
+                    service_name,
+                    f"{service_name}.{namespace}",
+                    f"{service_name}.{namespace}.svc",
+                    (f"{service_name}.{namespace}.svc.cluster.local"),
+                ],
+                "issuerRef": {
+                    "kind": "Issuer",
+                    "name": issuer_name,
+                },
+                "secretName": secret_name,
+            },
+        },
+        {
+            "apiVersion": "admissionregistration.k8s.io/v1",
+            "kind": "MutatingWebhookConfiguration",
+            "metadata": {
+                "name": webhook_name,
+                "annotations": {
+                    "cert-manager.io/inject-ca-from": (
+                        f"{namespace}/{certificate_name}"
+                    ),
+                },
+            },
+            "webhooks": [
+                {
+                    "name": (f"{service_name}.{namespace}.svc"),
+                    "clientConfig": {
+                        "service": {
+                            "name": service_name,
+                            "namespace": namespace,
+                            "path": "/mutate",
+                            "port": 443,
+                        },
+                    },
+                    "failurePolicy": str(cache["webhook_failure_policy"]),
+                    "rules": [
+                        {
+                            "operations": ["CREATE"],
+                            "apiGroups": [""],
+                            "apiVersions": ["v1"],
+                            "resources": ["pods"],
+                        },
+                    ],
+                    "sideEffects": "None",
+                    "timeoutSeconds": 5,
+                    "objectSelector": {
+                        "matchLabels": {
+                            ("pipelines.kubeflow.org/cache_enabled"): "true",
+                        },
+                    },
+                    "admissionReviewVersions": ["v1"],
+                },
+            ],
+        },
+    ]
+
+
+def apply_cache_tls_compatibility(
+    documents: list[dict[str, Any]],
+    policy: dict[str, Any],
+) -> tuple[bool, int]:
+    """Replace the legacy CSR bootstrap declaratively."""
+    cache = policy["platform_compatibility"]["cache_tls"]
+
+    if cache.get("disable_legacy_cache_deployer") is not True:
+        raise ValueError("Legacy cache deployer must be disabled")
+
+    deployment_name = str(cache["cache_deployer_name"])
+    target_replicas = int(cache["cache_deployer_replicas"])
+
+    deployments = [
+        document
+        for document in documents
+        if document.get("kind") == "Deployment"
+        and document.get("metadata", {}).get("name") == deployment_name
+    ]
+
+    if len(deployments) != 1:
+        raise ValueError(
+            f"Expected exactly one legacy cache deployer, found {len(deployments)}"
+        )
+
+    deployment = deployments[0]
+    deployment.setdefault("spec", {})["replicas"] = target_replicas
+
+    compatibility_objects = build_cache_tls_objects(policy)
+    new_identities = {
+        (
+            document["kind"],
+            document["metadata"]["name"],
+        )
+        for document in compatibility_objects
+    }
+    existing_identities = {
+        (
+            str(document.get("kind", "")),
+            str(
+                document.get("metadata", {}).get(
+                    "name",
+                    "",
+                )
+            ),
+        )
+        for document in documents
+    }
+
+    conflicts = new_identities & existing_identities
+
+    if conflicts:
+        formatted = [f"{kind}/{name}" for kind, name in sorted(conflicts)]
+        raise ValueError("Compatibility objects already exist: " + ", ".join(formatted))
+
+    documents.extend(compatibility_objects)
+
+    return True, len(compatibility_objects)
 
 
 def validate_pinned_images(images: set[str]) -> None:
@@ -329,8 +487,7 @@ def validate_pinned_images(images: set[str]) -> None:
 
     if invalid:
         raise ValueError(
-            "Rendered images are not digest pinned: "
-            + ", ".join(sorted(invalid))
+            "Rendered images are not digest pinned: " + ", ".join(sorted(invalid))
         )
 
 
@@ -371,6 +528,20 @@ def render(
         "kfp-platform": deepcopy(platform),
     }
 
+    upstream_document_count = len(cert_manager) + len(cluster) + len(platform)
+
+    pvc_storage_classes_added = apply_storage_compatibility(
+        platform,
+        policy,
+    )
+    (
+        legacy_cache_deployer_disabled,
+        compatibility_objects_added,
+    ) = apply_cache_tls_compatibility(
+        platform,
+        policy,
+    )
+
     deployment_count = 0
     container_count = 0
     resource_fields_added = 0
@@ -399,18 +570,11 @@ def render(
 
     image_policy = lock["image_policy"]
 
-    if (
-        image_policy.get("digest_resolution_status")
-        != "resolved"
-    ):
-        raise ValueError(
-            "Image digest resolution is not complete"
-        )
+    if image_policy.get("digest_resolution_status") != "resolved":
+        raise ValueError("Image digest resolution is not complete")
 
     if image_policy.get("installation_allowed") is not True:
-        raise ValueError(
-            "The source lock has not opened installation"
-        )
+        raise ValueError("The source lock has not opened installation")
 
     resolutions = image_policy.get(
         "resolved_images",
@@ -418,19 +582,14 @@ def render(
     )
 
     direct_resolutions = {
-        image: resolutions[image]
-        for image in source_images
-        if image in resolutions
+        image: resolutions[image] for image in source_images if image in resolutions
     }
 
-    missing_direct_locks = (
-        source_images - set(direct_resolutions)
-    )
+    missing_direct_locks = source_images - set(direct_resolutions)
 
     if missing_direct_locks:
         raise ValueError(
-            "Missing direct image locks: "
-            + ", ".join(sorted(missing_direct_locks))
+            "Missing direct image locks: " + ", ".join(sorted(missing_direct_locks))
         )
 
     pinned_occurrences = pin_images(
@@ -446,18 +605,12 @@ def render(
         resolutions,
     )
 
-    used_locked_images = (
-        set(direct_resolutions)
-        | indirect_source_images
-    )
-    unused_locked_images = (
-        set(resolutions) - used_locked_images
-    )
+    used_locked_images = set(direct_resolutions) | indirect_source_images
+    unused_locked_images = set(resolutions) - used_locked_images
 
     if unused_locked_images:
         raise ValueError(
-            "Unused locked images: "
-            + ", ".join(sorted(unused_locked_images))
+            "Unused locked images: " + ", ".join(sorted(unused_locked_images))
         )
 
     pinned_images = collect_images(all_documents)
@@ -466,16 +619,54 @@ def render(
     expected = lock["expected_inventory"]
     validation = policy["validation"]
 
+    expected_upstream_documents = validation["expected_upstream_documents"]
+    expected_rendered_documents = validation["expected_rendered_documents"]
+    expected_platform_documents = validation["expected_platform_documents"]
+    expected_storage_classes_added = validation["expected_pvc_storage_classes_added"]
+    expected_compatibility_objects_added = validation[
+        "expected_compatibility_objects_added"
+    ]
+
+    if upstream_document_count != expected_upstream_documents:
+        raise ValueError(
+            f"Expected {expected_upstream_documents} upstream "
+            f"documents, found {upstream_document_count}"
+        )
+
+    if len(all_documents) != expected_rendered_documents:
+        raise ValueError(
+            f"Expected {expected_rendered_documents} rendered "
+            f"documents, found {len(all_documents)}"
+        )
+
+    if len(platform) != expected_platform_documents:
+        raise ValueError(
+            f"Expected {expected_platform_documents} platform "
+            f"documents, found {len(platform)}"
+        )
+
+    if pvc_storage_classes_added != expected_storage_classes_added:
+        raise ValueError(
+            f"Expected {expected_storage_classes_added} PVC "
+            "storage classes added, found "
+            f"{pvc_storage_classes_added}"
+        )
+
+    if compatibility_objects_added != expected_compatibility_objects_added:
+        raise ValueError(
+            f"Expected {expected_compatibility_objects_added} "
+            "compatibility objects added, found "
+            f"{compatibility_objects_added}"
+        )
+
     if deployment_count != expected["deployments"]:
         raise ValueError(
-            f"Expected {expected['deployments']} Deployments, "
-            f"found {deployment_count}"
+            f"Expected {expected['deployments']} Deployments, found {deployment_count}"
         )
 
     if container_count != expected["containers"]:
         raise ValueError(
-            f"Expected {expected['containers']} containers, "
-            f"found {container_count}"
+            f"Expected {expected['containers']} containers, found {container_count}"
         )
 
     expected_indirect_images = expected.get(
@@ -487,10 +678,7 @@ def render(
         expected["unique_images"],
     )
 
-    if (
-        len(indirect_source_images)
-        != expected_indirect_images
-    ):
+    if len(indirect_source_images) != expected_indirect_images:
         raise ValueError(
             f"Expected {expected_indirect_images} indirect "
             "images, found "
@@ -517,13 +705,10 @@ def render(
 
     if pinned_occurrences != container_count:
         raise ValueError(
-            f"Expected {container_count} pinned occurrences, "
-            f"found {pinned_occurrences}"
+            f"Expected {container_count} pinned occurrences, found {pinned_occurrences}"
         )
 
-    expected_added = validation[
-        "expected_resource_fields_added"
-    ]
+    expected_added = validation["expected_resource_fields_added"]
 
     if resource_fields_added != expected_added:
         raise ValueError(
@@ -549,9 +734,7 @@ def render(
             raise ValueError("Advanced node role was not applied")
 
         if selector.get("workload") != "ml-platform":
-            raise ValueError(
-                "Advanced workload selector was not applied"
-            )
+            raise ValueError("Advanced workload selector was not applied")
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -566,35 +749,29 @@ def render(
     report = {
         "source_checksums_verified": True,
         "documents": len(all_documents),
+        "upstream_documents": upstream_document_count,
+        "platform_documents": len(platform),
         "deployments_hardened": deployment_count,
+        "pvc_storage_classes_added": (pvc_storage_classes_added),
+        "legacy_cache_deployer_disabled": (legacy_cache_deployer_disabled),
+        "compatibility_objects_added": (compatibility_objects_added),
         "containers_processed": container_count,
         "resource_fields_added": resource_fields_added,
-        "existing_linux_selectors_preserved": (
-            linux_selector_preserved
-        ),
+        "existing_linux_selectors_preserved": (linux_selector_preserved),
         "unique_source_images": len(source_images),
         "source_images": sorted(source_images),
         "unique_images": len(pinned_images),
         "images": sorted(pinned_images),
         "image_references_pinned": pinned_occurrences,
-        "indirect_image_references_pinned": (
-            indirect_pinned_occurrences
-        ),
+        "indirect_image_references_pinned": (indirect_pinned_occurrences),
         "total_image_references_pinned": (
-            pinned_occurrences
-            + indirect_pinned_occurrences
+            pinned_occurrences + indirect_pinned_occurrences
         ),
-        "indirect_source_images": sorted(
-            indirect_source_images
-        ),
+        "indirect_source_images": sorted(indirect_source_images),
         "total_locked_images": len(resolutions),
         "all_images_digest_pinned": True,
-        "cluster_resources_modified": (
-            original["kfp-cluster"] != cluster
-        ),
-        "compatibility_boundaries": policy[
-            "compatibility_boundaries"
-        ],
+        "cluster_resources_modified": (original["kfp-cluster"] != cluster),
+        "compatibility_boundaries": policy["compatibility_boundaries"],
         "outputs": {
             "cert_manager": str(cert_output),
             "kfp_cluster": str(cluster_output),
@@ -615,8 +792,7 @@ def parse_arguments() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description=(
-            "Render audited Kubeflow Pipelines manifests "
-            "with additive hardening."
+            "Render audited Kubeflow Pipelines manifests with additive hardening."
         )
     )
     parser.add_argument(
