@@ -324,3 +324,40 @@ Rendering fails if a supported runtime image lacks a lock, has an
 invalid digest mapping, or leaves an unused lock. The immutable image
 contract therefore covers control-plane Deployments, init containers,
 cert-manager solver Pods, and KFP-generated pipeline support Pods.
+
+## Installation validation evidence
+
+The standalone Kubeflow Pipelines 2.17.0 installation was validated
+against deployment commit
+`1c07e4a54ab6f11b13186c8c474b4a23b7154302`. GitHub Actions run
+`34669434256` completed successfully with infrastructure validation,
+application tests, container builds, and security scanning passing.
+
+The final post-pinning smoke run
+`enterprise-mlops-platform-smoke-runtime-pinned-20260912` completed with
+the `SUCCEEDED` state. Its generated Workflow completed all three nodes,
+and all three generated Pods succeeded under the `pipeline-runner`
+ServiceAccount on the dedicated advanced MLOps node group.
+
+The ten generated container and init-container image occurrences used
+only four SHA-256 digest-pinned images:
+
+- the smoke-test Alpine workload
+- the KFP v2 driver
+- the KFP v2 launcher
+- the Argo executor
+
+The smoke workload emitted the expected functional markers, and its
+executor logs were published successfully to the persistent
+SeaweedFS-backed artifact store. The KFP API, UI, webhook certificates,
+cache server, MySQL metadata store, and all 13 active KFP Deployments
+were healthy after validation.
+
+The MySQL and SeaweedFS EBS-backed PVC identities remained unchanged
+through the compatibility repairs and runtime-image rollout. No public
+LoadBalancer, Ingress, DNS record, credential, Secret value, Pod IP,
+node hostname, or raw Kubernetes API export is included in the durable
+evidence.
+
+The sanitized machine-readable validation record is available at
+[`docs/evidence/kubeflow-pipelines-validation.json`](evidence/kubeflow-pipelines-validation.json).

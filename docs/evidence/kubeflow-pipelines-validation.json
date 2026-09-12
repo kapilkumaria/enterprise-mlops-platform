@@ -1,0 +1,102 @@
+{
+  "component": "kubeflow-pipelines",
+  "environment": {
+    "access_model": "private ClusterIP with temporary local port-forward",
+    "cloud": "AWS",
+    "kfp_version": "2.17.0",
+    "kubernetes_namespace": "kubeflow",
+    "platform": "Amazon EKS"
+  },
+  "persistence_validation": {
+    "mysql_pvc": {
+      "capacity": "20Gi",
+      "identity_preserved_during_repairs": true,
+      "phase": "Bound",
+      "storage_class": "ebs-gp3"
+    },
+    "seaweedfs_pvc": {
+      "capacity": "20Gi",
+      "identity_preserved_during_repairs": true,
+      "phase": "Bound",
+      "storage_class": "ebs-gp3"
+    }
+  },
+  "post_pinning_smoke_test": {
+    "advanced_node_placement_verified": true,
+    "artifact_log_publication_verified": true,
+    "declared_image_occurrences": 10,
+    "experiment_id": "1994dabf-52a9-48d3-84e8-36691c8f179f",
+    "functional_markers_verified": [
+      "KFP_SMOKE_TEST=PASS",
+      "IMAGE_IS_DIGEST_PINNED=true",
+      "PIPELINE_ENGINE=kubeflow-pipelines"
+    ],
+    "generated_pods": 3,
+    "non_digest_image_occurrences": 0,
+    "run_id": "782227a2-fe83-4b8f-b808-03d99c3a1441",
+    "run_name": "enterprise-mlops-platform-smoke-runtime-pinned-20260912",
+    "run_state": "SUCCEEDED",
+    "service_account": "pipeline-runner",
+    "succeeded_pods": 3,
+    "workflow_phase": "Succeeded",
+    "workflow_progress": "3/3"
+  },
+  "project": "enterprise-mlops-platform",
+  "render_contract": {
+    "active_deployments": 13,
+    "all_images_digest_pinned": true,
+    "cache_tls_projection_configured": true,
+    "direct_image_occurrences": 23,
+    "indirect_image_occurrences": 4,
+    "platform_documents": 81,
+    "rendered_documents": 146,
+    "total_immutable_image_locks": 22,
+    "total_pinned_image_occurrences": 27,
+    "upstream_documents": 143
+  },
+  "result": {
+    "functional_pipeline_execution_verified": true,
+    "generated_runtime_images_immutable": true,
+    "installation_operational": true,
+    "persistent_storage_preserved": true,
+    "status": "PASS"
+  },
+  "runtime_image_contract": {
+    "argo_executor": "quay.io/argoproj/argoexec@sha256:0cb732e24c7d13385066c920e2943fdddfa1d15e6bf5ad99f02e48c50625d022",
+    "driver": "ghcr.io/kubeflow/kfp-driver@sha256:887c1f6a730df9992bae1f57b7ddf509491c75fb94d03bb9a7865384ce6cde43",
+    "launcher": "ghcr.io/kubeflow/kfp-launcher@sha256:9b5e9e4df0677f348d288334d49807c82c6d82bcdf99d6217bcbe75f684cda7f",
+    "smoke_workload": "docker.io/alpine@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40"
+  },
+  "schema_version": 1,
+  "security_and_scope": {
+    "baseline_mlops_namespace_modified_by_final_validation": false,
+    "container_ids_included": false,
+    "credentials_included": false,
+    "node_hostnames_included": false,
+    "pod_ips_included": false,
+    "public_endpoint_created": false,
+    "raw_kubernetes_exports_included": false,
+    "raw_secret_data_included": false
+  },
+  "service_validation": {
+    "api_health_status": 200,
+    "cache_server_ready": true,
+    "cache_tls_certificate_file": "cert.pem",
+    "cache_tls_private_key_file": "key.pem",
+    "experiment_api_status": 200,
+    "ready_service_endpoints": 8,
+    "run_api_status": 200,
+    "ui_status": 200
+  },
+  "source_authority": {
+    "ci_conclusion": "success",
+    "ci_jobs_passed": [
+      "Infrastructure validation",
+      "ML pipeline and tests",
+      "Container build and security"
+    ],
+    "ci_run_id": 34669434256,
+    "deployment_commit": "1c07e4a54ab6f11b13186c8c474b4a23b7154302"
+  },
+  "validation_date": "2026-09-12"
+}
