@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "version": "v0.20.0",
+  "mode": "Standard",
+  "namespace": "kserve",
+  "model_uri": "s3://enterprise-mlops-platform-dev-931058976119/kserve/customer-churn/v1",
+  "images": {
+    "predictor": "931058976119.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-platform-dev-kserve-transformer@sha256:5650a05184c7990ae9a026b8b2c8ef849ccc2038a7a0afc1e708a9ef45069589",
+    "storage_initializer": "kserve/storage-initializer@sha256:d7a3921d5fdc476739bc6fdcdc1ff3ba41421578620211fb6ac0e60c5541444a",
+    "controller": "kserve/kserve-controller@sha256:b866d17320bdd340b547aedd3bc753a3de719624ea773a852f9fc4c8c5208cfd",
+    "rbac_proxy": "quay.io/brancz/kube-rbac-proxy@sha256:62eeb8a0aaa13a8d886de07e5805940cec079ffbaf1d74483e26ad4a84952dce"
+  }
+}

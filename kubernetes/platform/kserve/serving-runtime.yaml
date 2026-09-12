@@ -1,0 +1,28 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: sklearn-runtime
+  namespace: kserve
+spec:
+  supportedModelFormats:
+    - name: sklearn
+      version: "1"
+      autoSelect: true
+  containers:
+    - name: kserve-container
+      image: 931058976119.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-platform-dev-kserve-transformer@sha256:5650a05184c7990ae9a026b8b2c8ef849ccc2038a7a0afc1e708a9ef45069589
+      command:
+        - uvicorn
+        - app:app
+      args:
+        - --host=0.0.0.0
+        - --port=8080
+      ports:
+        - containerPort: 8080
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi

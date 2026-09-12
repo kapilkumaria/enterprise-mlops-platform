@@ -1,0 +1,28 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: churn-model
+  namespace: kserve
+  annotations:
+    serving.kserve.io/deploymentMode: Standard
+  labels:
+    app.kubernetes.io/name: churn-model
+    app.kubernetes.io/part-of: enterprise-mlops-platform
+    app.kubernetes.io/managed-by: project8
+spec:
+  predictor:
+    serviceAccountName: kserve-model-reader
+    minReplicas: 1
+    maxReplicas: 1
+    model:
+      modelFormat:
+        name: sklearn
+      protocolVersion: v1
+      storageUri: s3://enterprise-mlops-platform-dev-931058976119/kserve/customer-churn/v1
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
