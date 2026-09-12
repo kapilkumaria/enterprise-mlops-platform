@@ -1,0 +1,14 @@
+{
+  "artifact_format": "joblib",
+  "component": "sagemaker",
+  "credentials_committed": false,
+  "endpoint_created": false,
+  "integration_scope": "minimal-documentation-only",
+  "model_artifact": "s3://enterprise-mlops-platform-dev-931058976119/kserve/customer-churn/v1/model.joblib",
+  "notebook_instance_created": false,
+  "private_s3_storage": true,
+  "project": "enterprise-mlops-platform",
+  "schema_version": 1,
+  "status": "DOCUMENTED",
+  "training_job_created": false
+}
