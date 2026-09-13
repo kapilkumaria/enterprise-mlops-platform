@@ -53,17 +53,17 @@ It provides a complete workflow for:
 
 ## High-level architecture
 
-```mermaid
-flowchart LR
-    A[Customer Churn Dataset] --> B[DVC Pipeline]
-    B --> C[Train and Evaluate]
-    C --> D[MLflow Tracking]
-    D --> E[MLflow Model Registry]
-    E --> F[Kubeflow Pipelines]
-    E --> G[Private S3 Model Artifact]
-    G --> H[KServe Standard]
-    H --> I[Private Prediction API]
-```
+![Enterprise MLOps Platform architecture](docs/images/architecture/enterprise-mlops-platform-architecture.png)
+
+The platform follows a reproducible flow from versioned customer-churn data
+through DVC preprocessing, scikit-learn training, MLflow tracking and model
+registration, Kubeflow orchestration, private S3 artifact storage, and KServe
+Standard model serving on Amazon EKS.
+
+The validated deployment used the MLflow `candidate` alias, private
+ClusterIP access, EKS Pod Identity, least-privilege IAM, digest-pinned
+container images, and no public ingress.
+
 ## Platform components
 
 | Layer               | Component                        | Responsibility                                  |
