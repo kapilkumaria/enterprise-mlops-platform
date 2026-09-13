@@ -180,6 +180,13 @@ params.yaml
 dvc.yaml
 dvc.lock
 ```
+### DVC pipeline validation
+
+The DVC pipeline is deterministic. When the source data and parameters are
+unchanged, DVC correctly detects that all stages are up to date.
+
+![DVC pipeline reproduced](docs/images/dvc/dvc-pipeline-reproduced.png)
+
 ## 3. Model training and evaluation
 
 The model is trained with scikit-learn and evaluated using the reproducible
@@ -478,7 +485,12 @@ GitHub Actions validates:
 - Container builds.
 - Container security scans.
 
-The final CI workflow completed successfully.
+## CI validation evidence
+
+The final GitHub Actions workflow completed successfully across the ML
+pipeline, infrastructure validation, and container security jobs.
+
+![Successful GitHub Actions CI workflow](docs/images/github-actions/ci-success.png)
 
 ---
 
