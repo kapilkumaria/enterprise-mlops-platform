@@ -112,3 +112,13 @@ output "advanced_node_group_name" {
   description = "Name of the dedicated advanced MLOps node group."
   value       = module.eks.advanced_node_group_name
 }
+
+output "churn_api_role_arn" {
+  description = "IAM role ARN used by the churn API through EKS Pod Identity."
+  value       = aws_iam_role.churn_api.arn
+}
+
+output "churn_api_pod_identity_association_id" {
+  description = "EKS Pod Identity association ID for the churn API."
+  value       = aws_eks_pod_identity_association.churn_api.association_id
+}

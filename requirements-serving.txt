@@ -7,3 +7,6 @@ fastapi==0.141.1
 uvicorn==0.52.4
 pydantic==2.13.5
 msgpack>=1.2.1,<2.0
+
+# Required by MLflow S3 artifact downloads
+boto3==1.43.75

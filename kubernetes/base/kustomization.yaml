@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: mlops
 resources:
   - namespace.yaml
+  - churn-api-serviceaccount.yaml
   - configmap.yaml
   - deployment.yaml
   - service.yaml
@@ -11,6 +12,7 @@ resources:
   - storageclass-gp3.yaml
   - mlflow-pvc.yaml
   - mlflow-deployment.yaml
+  - mlflow-registry-bootstrap.yaml
   - mlflow-service.yaml
   - networkpolicy.yaml
 labels:

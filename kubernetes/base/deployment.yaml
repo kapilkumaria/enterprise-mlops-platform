@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: churn-api
+  annotations:
+    checkov.io/skip1: CKV_K8S_38=EKS Pod Identity requires a projected Kubernetes service-account token.
   namespace: mlops
   labels:
     app.kubernetes.io/name: churn-api
@@ -20,7 +22,8 @@ spec:
         app.kubernetes.io/component: inference
         app.kubernetes.io/part-of: enterprise-mlops-platform
     spec:
-      automountServiceAccountToken: false
+      serviceAccountName: churn-api
+      automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -28,9 +31,53 @@ spec:
         fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - name: wait-for-mlflow-model
+          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-api@sha256:2dceae040e0fd2f5e130b312a276b1a087578142d1e01923149ed10160652d49
+          imagePullPolicy: Always
+          command:
+            - python
+            - -c
+            - |
+              import time
+              import urllib.error
+              import urllib.request
+
+              url = (
+                  "http://mlflow.mlops.svc.cluster.local:5000"
+                  "/api/2.0/mlflow/registered-models/alias"
+                  "?name=customer-churn-model&alias=candidate"
+              )
+
+              for attempt in range(90):
+                  try:
+                      with urllib.request.urlopen(url, timeout=3) as response:
+                          if response.status == 200:
+                              print("MLflow candidate model is ready")
+                              break
+                  except (urllib.error.URLError, TimeoutError):
+                      pass
+                  time.sleep(2)
+              else:
+                  raise SystemExit("MLflow candidate model did not become ready")
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
       containers:
         - name: churn-api
-          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-api@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/enterprise-mlops-api@sha256:2dceae040e0fd2f5e130b312a276b1a087578142d1e01923149ed10160652d49
           imagePullPolicy: Always
           ports:
             - name: http

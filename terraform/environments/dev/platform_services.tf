@@ -204,3 +204,76 @@ resource "aws_eks_pod_identity_association" "mlflow" {
     aws_iam_role_policy_attachment.mlflow_artifacts,
   ]
 }
+resource "aws_iam_role" "churn_api" {
+  name = "${local.name_prefix}-churn-api-role"
+
+  assume_role_policy = (
+    data.aws_iam_policy_document.pod_identity_assume_role.json
+  )
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-churn-api-role"
+    }
+  )
+}
+
+data "aws_iam_policy_document" "churn_api_artifacts" {
+  statement {
+    sid    = "ListMLflowArtifactPrefix"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+    ]
+
+    resources = [
+      module.storage.bucket_arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["mlflow", "mlflow/*"]
+    }
+  }
+
+  statement {
+    sid       = "ReadMLflowArtifactObjects"
+    effect    = "Allow"
+    actions   = ["s3:GetObject", "s3:GetObjectVersion"]
+    resources = ["${module.storage.bucket_arn}/mlflow/*"]
+  }
+}
+
+resource "aws_iam_policy" "churn_api_artifacts" {
+  name        = "${local.name_prefix}-churn-api-artifacts"
+  description = "Permit the churn API to read MLflow model artifacts."
+  policy      = data.aws_iam_policy_document.churn_api_artifacts.json
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-churn-api-artifacts"
+    }
+  )
+}
+
+resource "aws_iam_role_policy_attachment" "churn_api_artifacts" {
+  role       = aws_iam_role.churn_api.name
+  policy_arn = aws_iam_policy.churn_api_artifacts.arn
+}
+
+resource "aws_eks_pod_identity_association" "churn_api" {
+  cluster_name    = module.eks.cluster_name
+  namespace       = "mlops"
+  service_account = "churn-api"
+  role_arn        = aws_iam_role.churn_api.arn
+
+  depends_on = [
+    aws_eks_addon.pod_identity_agent,
+    aws_iam_role_policy_attachment.churn_api_artifacts,
+  ]
+}

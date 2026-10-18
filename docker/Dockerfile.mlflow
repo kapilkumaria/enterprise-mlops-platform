@@ -44,6 +44,8 @@ RUN python -m pip install \
         --yes \
         pip
 
+COPY scripts/bootstrap_mlflow_registry.py /mlflow/bootstrap_mlflow_registry.py
+
 USER ${APP_UID}:${APP_UID}
 
 EXPOSE 5000
